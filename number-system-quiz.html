@@ -1,0 +1,1865 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inter-Base Logic | Number Converter</title>
+  <!-- Unified Coding Logo Favicon -->
+  <link rel="icon" type="image/svg+xml"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%236366f1'/%3E%3Cstop offset='100%25' stop-color='%23a855f7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='24' fill='url(%23g)'/%3E%3Cpath d='M30 32 L16 50 L30 68 M70 32 L84 50 L70 68 M56 22 L44 78' stroke='white' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+  <!-- Firebase SDK & Route Protection Script -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="script.js"></script>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-light: #818cf8;
+      --success: #10b981;
+      --error: #f43f5e;
+      --text-dark: #f8fafc;
+      --text-muted: #94a3b8;
+      --glass: rgba(15, 23, 42, 0.82);
+      --border: rgba(255, 255, 255, 0.12);
+      --shadow: 0 24px 60px rgba(0, 0, 0, 0.65), 0 0 35px rgba(99, 102, 241, 0.18);
+      --card-item-bg: rgba(30, 41, 59, 0.70);
+      --card-item-border: rgba(255, 255, 255, 0.12);
+      --item-text: #f8fafc;
+      --item-subtext: #94a3b8;
+    }
+
+    /* Top Right Controls & Time Greeting */
+    .top-right-controls {
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: greetSlide 0.6s ease;
+    }
+
+    .theme-toggle-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #f8fafc;
+      cursor: pointer;
+      transition: all 0.22s ease;
+      user-select: none;
+      outline: none;
+    }
+
+    .theme-toggle-btn:hover {
+      transform: translateY(-2px);
+      border-color: var(--primary);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
+    }
+
+    .time-greeting-quiz {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #f8fafc;
+      white-space: nowrap;
+    }
+
+    .time-greeting-quiz .greet-name {
+      color: #a5b4fc;
+      font-weight: 700;
+    }
+
+    /* ============================================================
+       AI SOLUTION MODAL OVERLAY
+       ============================================================ */
+    .lb-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(7, 10, 18, 0.78);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.25s ease, visibility 0.25s ease;
+    }
+    .lb-modal-overlay.show {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+    .lb-modal {
+      background: var(--glass, rgba(15, 23, 42, 0.92));
+      border: 1px solid var(--border, rgba(255, 255, 255, 0.15));
+      border-radius: 20px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 0 35px rgba(99, 102, 241, 0.22);
+      width: 100%;
+      max-width: 680px;
+      padding: 24px;
+      position: relative;
+      transform: translateY(16px) scale(0.96);
+      transition: transform 0.25s ease;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .lb-modal-overlay.show .lb-modal {
+      transform: translateY(0) scale(1);
+    }
+    .lb-close {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border, rgba(255, 255, 255, 0.15));
+      color: #f8fafc;
+      border-radius: 10px;
+      width: 34px;
+      height: 34px;
+      font-size: 20px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .lb-close:hover {
+      background: #f43f5e;
+      border-color: #f43f5e;
+      color: #fff;
+    }
+
+    /* Light Theme Overrides */
+    [data-theme="light"] {
+      --text-dark: #1e1b4b;
+      --text-muted: #64748b;
+      --glass: rgba(255, 255, 255, 0.88);
+      --border: rgba(219, 227, 238, 0.85);
+      --shadow: 0 20px 40px -8px rgba(60, 40, 120, 0.12), 0 4px 16px rgba(99, 102, 241, 0.08);
+      --card-item-bg: rgba(255, 255, 255, 0.92);
+      --card-item-border: rgba(219, 227, 238, 0.85);
+      --item-text: #1e1b4b;
+      --item-subtext: #64748b;
+    }
+
+    [data-theme="light"] body {
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      color: #1e1b4b;
+    }
+
+    [data-theme="light"] body::before {
+      background:
+        radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.18) 0%, transparent 45%),
+        radial-gradient(circle at 85% 20%, rgba(168, 85, 247, 0.14) 0%, transparent 40%),
+        radial-gradient(circle at 80% 85%, rgba(16, 185, 129, 0.12) 0%, transparent 45%),
+        radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.16) 0%, transparent 45%),
+        linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    }
+
+    [data-theme="light"] .app-container {
+      background: rgba(255, 255, 255, 0.88);
+      border-color: rgba(219, 227, 238, 0.85);
+      box-shadow: 0 20px 50px rgba(37, 99, 235, 0.10);
+    }
+
+    [data-theme="light"] header h1 {
+      color: #1e1b4b;
+    }
+
+    [data-theme="light"] header p {
+      color: #64748b;
+    }
+
+    [data-theme="light"] .display-card {
+      background: rgba(255, 255, 255, 0.92);
+      border-color: rgba(219, 227, 238, 0.85);
+      box-shadow: 0 10px 28px rgba(37, 99, 235, 0.08);
+    }
+
+    [data-theme="light"] .big-number {
+      color: #1e1b4b;
+    }
+
+    [data-theme="light"] .control-panel {
+      background: rgba(255, 255, 255, 0.75);
+      border-color: rgba(219, 227, 238, 0.85);
+    }
+
+    [data-theme="light"] select {
+      background: #ffffff;
+      color: #1e1b4b;
+      border-color: #cbd5e1;
+    }
+
+    [data-theme="light"] #answerInput {
+      background: #ffffff;
+      color: #1e1b4b;
+      border-color: #cbd5e1;
+    }
+
+    [data-theme="light"] .time-greeting-quiz,
+    [data-theme="light"] .theme-toggle-btn {
+      background: rgba(255, 255, 255, 0.75);
+      border-color: rgba(255, 255, 255, 0.90);
+      color: #1e1b4b;
+      box-shadow: 0 4px 18px rgba(99, 102, 241, 0.12);
+    }
+
+    [data-theme="light"] .time-greeting-quiz .greet-name {
+      color: #4f46e5;
+    }
+
+    [data-theme="light"] .lb-overlay {
+      background: rgba(15, 23, 42, 0.45);
+    }
+
+    [data-theme="light"] .lb-modal {
+      background: rgba(255, 255, 255, 0.96);
+      border-color: rgba(219, 227, 238, 0.90);
+      color: #1e1b4b;
+      box-shadow: 0 24px 60px rgba(37, 99, 235, 0.15);
+    }
+
+    [data-theme="light"] .lb-modal h2 {
+      color: #1e1b4b;
+    }
+
+    [data-theme="light"] .lb-sub {
+      color: #64748b;
+    }
+
+    [data-theme="light"] .lb-close {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+    }
+
+    [data-theme="light"] .lb-close:hover {
+      background: #ef4444;
+      color: #ffffff;
+      border-color: #ef4444;
+    }
+
+    [data-theme="light"] .btn-reveal {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+    }
+
+    [data-theme="light"] #btn-next {
+      background: #ffffff;
+      border: 2px solid var(--primary);
+      color: var(--primary);
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.12);
+    }
+
+    [data-theme="light"] .badge-from {
+      background: rgba(37, 99, 235, 0.12);
+      color: #1d4ed8;
+      border-color: rgba(37, 99, 235, 0.25);
+    }
+
+    [data-theme="light"] .badge-to {
+      background: rgba(217, 119, 6, 0.12);
+      color: #b45309;
+      border-color: rgba(217, 119, 6, 0.25);
+    }
+
+    [data-theme="light"] .stats {
+      border-top-color: #e2e8f0;
+      color: #64748b;
+    }
+
+    [data-theme="light"] .quiz-pts-badge {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.18), rgba(245, 158, 11, 0.24));
+      border-color: rgba(217, 119, 6, 0.35);
+      color: #b45309;
+    }
+
+    [data-theme="light"] .nav-btn-back {
+      color: #1d4ed8;
+      background: rgba(37, 99, 235, 0.08);
+      border-color: rgba(37, 99, 235, 0.25);
+    }
+
+    [data-theme="light"] .nav-btn-history {
+      color: #0284c7;
+      background: rgba(2, 132, 199, 0.10);
+      border-color: rgba(2, 132, 199, 0.28);
+    }
+
+    [data-theme="light"] .nav-btn-logout {
+      color: #dc2626;
+      background: rgba(239, 68, 68, 0.08);
+      border-color: rgba(239, 68, 68, 0.22);
+    }
+
+    [data-theme="light"] #answerInput.success,
+    [data-theme="light"] #answerInput.correct {
+      background: #dcfce7 !important;
+      border-color: #16a34a !important;
+      color: #15803d !important;
+      font-weight: 800 !important;
+      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.28) !important;
+    }
+
+    [data-theme="light"] #answerInput.fail,
+    [data-theme="light"] #answerInput.wrong {
+      background: #fee2e2 !important;
+      border-color: #dc2626 !important;
+      color: #b91c1c !important;
+      font-weight: 800 !important;
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.28) !important;
+    }
+
+    [data-theme="light"] .feedback.success {
+      background: #dcfce7 !important;
+      border-color: #16a34a !important;
+      color: #15803d !important;
+    }
+
+    [data-theme="light"] .feedback.fail {
+      background: #fee2e2 !important;
+      border-color: #dc2626 !important;
+      color: #b91c1c !important;
+    }
+
+    .quiz-action-bar {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+      margin-bottom: 20px;
+      width: 100%;
+    }
+
+    .btn-action {
+      flex: 1;
+      padding: 14px 18px;
+      border-radius: 16px;
+      border: none;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: transform 0.18s ease, box-shadow 0.2s ease, background 0.2s ease;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .btn-action:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-action:active {
+      transform: translateY(0) scale(0.97);
+    }
+
+    .btn-check-main {
+      background: linear-gradient(135deg, var(--primary), #4f46e5);
+      color: #ffffff;
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
+    }
+
+    .btn-next-main {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #ffffff;
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
+    }
+
+    .btn-ai-main {
+      background: rgba(30, 41, 59, 0.85);
+      color: #a5b4fc;
+      border: 1.5px solid rgba(99, 102, 241, 0.4);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+    }
+
+    [data-theme="light"] .btn-ai-main {
+      background: #ffffff;
+      color: #4f46e5;
+      border-color: #a5b4fc;
+    }
+
+    @keyframes greetSlide {
+      from {
+        opacity: 0;
+        transform: translateY(-12px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Points badge in quiz header */
+    .quiz-pts-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 16px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.22), rgba(245, 158, 11, 0.32));
+      border: 1.5px solid rgba(251, 191, 36, 0.45);
+      font-size: 13px;
+      font-weight: 700;
+      color: #fbbf24;
+      margin-top: 10px;
+      cursor: default;
+    }
+
+    .quiz-pts-badge svg {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Inter', system-ui, sans-serif;
+      color: var(--text-dark);
+      padding: 20px;
+      background: #070a12;
+      background-attachment: fixed;
+      overflow-x: hidden;
+    }
+
+    /* Soft Animated Mesh Background */
+    body::before {
+      content: "";
+      position: fixed;
+      top: -15%;
+      left: -15%;
+      width: 130%;
+      height: 130%;
+      z-index: -1;
+      background:
+        radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.28) 0%, transparent 45%),
+        radial-gradient(circle at 85% 20%, rgba(168, 85, 247, 0.24) 0%, transparent 40%),
+        radial-gradient(circle at 80% 85%, rgba(16, 185, 129, 0.18) 0%, transparent 45%),
+        radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.22) 0%, transparent 45%),
+        #070a12;
+      filter: blur(65px);
+      will-change: transform;
+      transform: translate3d(0, 0, 0);
+      animation: meshMove 20s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+
+    @keyframes meshMove {
+      0% {
+        transform: scale(1) translate3d(0, 0, 0) rotate(0deg);
+      }
+
+      50% {
+        transform: scale(1.06) translate3d(-1.5%, 1.5%, 0) rotate(2deg);
+      }
+
+      100% {
+        transform: scale(1.03) translate3d(1.5%, -1%, 0) rotate(-1deg);
+      }
+    }
+
+    .top-nav-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .top-nav-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: nowrap;
+    }
+
+    .nav-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+      white-space: nowrap;
+      padding: 8px 16px;
+      height: 38px;
+      border-radius: 999px;
+      cursor: pointer;
+      box-sizing: border-box;
+      transition: all 0.2s ease;
+      line-height: 1;
+    }
+
+    .nav-btn span {
+      display: inline-block;
+      line-height: 1;
+    }
+
+    .nav-btn-back {
+      color: #a5b4fc;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1.5px solid rgba(99, 102, 241, 0.35);
+    }
+
+    .nav-btn-back:hover {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(99, 102, 241, 0.35);
+    }
+
+    .nav-btn-history {
+      color: #38bdf8;
+      background: rgba(2, 132, 199, 0.15);
+      border: 1.5px solid rgba(2, 132, 199, 0.35);
+    }
+
+    .nav-btn-history:hover {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #0284c7;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(2, 132, 199, 0.35);
+    }
+
+    .nav-btn-logout {
+      color: #f87171;
+      background: rgba(239, 68, 68, 0.12);
+      border: 1.5px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .nav-btn-logout:hover {
+      background: #ef4444;
+      color: #ffffff;
+      border-color: #ef4444;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(239, 68, 68, 0.35);
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 720px;
+      background: var(--glass);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border: 1px solid var(--border);
+      border-radius: 32px;
+      box-shadow: var(--shadow);
+      padding: 40px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    header h1 {
+      font-size: 32px;
+      font-weight: 800;
+      margin: 0;
+      color: var(--text-dark);
+      letter-spacing: -1.2px;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 15px;
+      margin-top: 5px;
+      font-weight: 500;
+    }
+
+    /* Modals Overlay */
+    .lb-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: rgba(3, 7, 18, 0.82);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .lb-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .lb-modal {
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border-radius: 24px;
+      width: 100%;
+      max-width: 600px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      box-shadow: 0 32px 80px rgba(0, 0, 0, 0.8), 0 0 40px rgba(99, 102, 241, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      overflow-y: auto;
+      color: #f8fafc;
+    }
+    .lb-modal h2 {
+      margin: 0 0 4px 0;
+      font-size: 22px;
+      font-weight: 800;
+      color: #f8fafc;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .lb-sub {
+      margin: 0 0 16px 0;
+      font-size: 13px;
+      color: #94a3b8;
+    }
+    .lb-close {
+      margin-left: auto;
+      flex-shrink: 0;
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #94a3b8;
+      cursor: pointer;
+    }
+    .lb-close:hover {
+      background: rgba(244, 63, 94, 0.8);
+      color: #ffffff;
+      border-color: rgba(244, 63, 94, 1);
+    }
+
+    /* Controls Section */
+    .control-panel {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr) auto;
+      gap: 15px;
+      align-items: end;
+      margin-bottom: 25px;
+      background: rgba(30, 41, 59, 0.60);
+      padding: 18px;
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field-group label {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.8px;
+    }
+
+    select {
+      appearance: none;
+      background: rgba(15, 23, 42, 0.85);
+      color: #f8fafc;
+      border: 1.5px solid rgba(255, 255, 255, 0.15);
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 14px;
+    }
+
+    /* Toggle Switch */
+    .switch-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(51, 65, 85, 0.8);
+      border-radius: 34px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      border-radius: 50%;
+    }
+
+    input:checked+.slider {
+      background-color: var(--primary);
+    }
+
+    input:checked+.slider:before {
+      transform: translateX(20px);
+    }
+
+    /* Main Display */
+    .display-card {
+      background: rgba(30, 41, 59, 0.65);
+      border-radius: 24px;
+      padding: 40px 20px;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+      margin-bottom: 25px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .badge-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .badge {
+      padding: 6px 14px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-from {
+      background: rgba(99, 102, 241, 0.22);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.35);
+    }
+
+    .badge-to {
+      background: rgba(245, 158, 11, 0.22);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+
+    .big-number {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 42px;
+      font-weight: 800;
+      color: #ffffff;
+      word-break: break-all;
+      letter-spacing: -1.5px;
+    }
+
+    /* Interaction */
+    #answerInput {
+      width: 100%;
+      background: rgba(30, 41, 59, 0.85);
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+      padding: 18px;
+      border-radius: 18px;
+      font-size: 22px;
+      text-align: center;
+      font-family: monospace;
+      outline: none;
+      margin-bottom: 20px;
+    }
+
+    #answerInput:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 25px rgba(99, 102, 241, 0.35);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      flex: 1;
+      padding: 16px;
+      border-radius: 16px;
+      border: none;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    .btn-check {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-reveal {
+      background: rgba(30, 41, 59, 0.80);
+      color: var(--text-muted);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    #btn-next {
+      background: transparent;
+      border: 2px solid var(--primary);
+      color: #a5b4fc;
+      width: 100%;
+      margin-bottom: 25px;
+    }
+
+    button:disabled {
+      opacity: 0.45 !important;
+      cursor: not-allowed !important;
+      transform: none !important;
+      box-shadow: none !important;
+      pointer-events: none !important;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    .feedback {
+      padding: 20px;
+      border-radius: 18px;
+      display: none;
+      text-align: center;
+      font-weight: 600;
+      margin-bottom: 20px;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .success {
+      background: rgba(16, 185, 129, 0.20);
+      color: #34d399;
+      border: 1.5px solid rgba(16, 185, 129, 0.40);
+    }
+
+    .fail {
+      background: rgba(244, 63, 94, 0.20);
+      color: #f43f5e;
+      border: 1.5px solid rgba(244, 63, 94, 0.40);
+    }
+
+    .stats {
+      display: flex;
+      justify-content: space-between;
+      padding-top: 25px;
+      border-top: 1.5px solid rgba(255, 255, 255, 0.12);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    footer {
+      margin-top: 50px;
+      font-size: 13px;
+      color: #94a3b8;
+      font-weight: 700;
+      text-align: center;
+      letter-spacing: 0.5px;
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 12px;
+        padding-top: 16px;
+      }
+
+      .top-nav-row {
+        justify-content: center;
+        margin-bottom: 18px;
+        gap: 10px;
+      }
+
+      .top-nav-actions {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .time-greeting-quiz {
+        font-size: 11.5px;
+        padding: 6px 12px;
+      }
+
+      .app-container {
+        padding: 20px 14px;
+        border-radius: 22px;
+        width: 100%;
+      }
+
+      .top-right-controls {
+        position: relative;
+        top: auto;
+        right: auto;
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+
+      .theme-toggle-btn, .time-greeting-quiz {
+        font-size: 12px;
+        padding: 6px 14px;
+      }
+
+      header {
+        margin-bottom: 20px;
+      }
+
+      header h1 {
+        font-size: 22px;
+        letter-spacing: -0.5px;
+      }
+
+      header p {
+        font-size: 13px;
+      }
+
+      .control-panel {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding: 16px;
+        margin-bottom: 20px;
+      }
+
+      .big-number {
+        font-size: 22px;
+        padding: 18px 12px;
+        word-break: break-all;
+        border-radius: 18px;
+        margin-bottom: 18px;
+      }
+
+      #answerInput {
+        font-size: 16px; /* Prevents auto-zoom on iOS */
+        padding: 14px;
+        margin-bottom: 14px;
+        border-radius: 16px;
+      }
+
+      .quiz-action-bar {
+        position: sticky;
+        bottom: 12px;
+        z-index: 1000;
+        background: rgba(15, 23, 42, 0.92);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
+        padding: 10px;
+        border-radius: 20px;
+        margin-top: 14px;
+        margin-bottom: 12px;
+      }
+
+      [data-theme="light"] .quiz-action-bar {
+        background: rgba(255, 255, 255, 0.92);
+        border-color: rgba(219, 227, 238, 0.95);
+        box-shadow: 0 12px 35px rgba(37, 99, 235, 0.15);
+      }
+
+      .btn-action {
+        padding: 12px 8px;
+        font-size: 13px;
+        border-radius: 14px;
+      }
+
+      .stats {
+        padding-top: 18px;
+        font-size: 12.5px;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: space-around;
+      }
+
+      .lb-modal {
+        padding: 18px 14px;
+        border-radius: 20px;
+        max-width: 95vw;
+        max-height: 84vh;
+      }
+
+      .lb-modal h2 {
+        font-size: 18px;
+      }
+
+      footer {
+        margin-top: 28px;
+        font-size: 12px;
+      }
+    }
+  </style>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@700&display=swap"
+    rel="stylesheet">
+</head>
+
+<body>
+
+  <!-- TOP-RIGHT CONTROLS (Theme Toggle + Greeting) -->
+  <div class="top-right-controls">
+    <button class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()" aria-label="Toggle Theme">
+      <span class="theme-toggle-icon" id="themeToggleIcon">🌙</span>
+      <span class="theme-toggle-label" id="themeToggleText">Dark</span>
+    </button>
+    <div class="time-greeting-quiz" id="timeGreeting">
+      <span id="greetEmoji">👋</span>
+      <span id="greetText">Welcome!</span>
+    </div>
+  </div>
+
+  <!-- HISTORY MODAL -->
+  <div class="lb-overlay" id="historyOverlay">
+    <div class="lb-modal" style="max-width:640px;">
+      <h2>
+        📜 Recent Solved History
+        <button class="lb-close" onclick="closeHistoryModal()">✕ Close</button>
+      </h2>
+      <p class="lb-sub">Your recent questions solved across arithmetic &amp; conversions</p>
+      <div id="historyBody"><p class="lb-loading">Loading history…</p></div>
+    </div>
+  </div>
+
+  <div class="app-container">
+    <div class="top-nav-row">
+      <a href="index1.html" class="nav-btn nav-btn-back">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5M12 19l-7-7 7-7" />
+        </svg>
+        <span>Back to Arithmetic Trainer</span>
+      </a>
+      <div class="top-nav-actions">
+        <a href="about.html" class="nav-btn" style="text-decoration:none;">
+          <span>📖</span>
+          <span>About</span>
+        </a>
+        <button onclick="openHistoryModal()" class="nav-btn nav-btn-history">
+          <span>📜</span>
+          <span>History</span>
+        </button>
+        <button onclick="logoutUser()" class="nav-btn nav-btn-logout">
+          <span>🔒</span>
+          <span>Logout</span>
+        </button>
+      </div>
+    </div>
+
+    <header>
+      <h1>Inter-Base Logic</h1>
+      <p>Multi-System Precision Training</p>
+      <!-- Digital Points badge -->
+      <div class="quiz-pts-badge" id="quizPtsBadge" title="Your total Digital Points">
+        <!-- Shiny Gold Star Coin SVG -->
+        <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:24px; height:24px; filter:drop-shadow(0 2px 6px rgba(245,158,11,0.4));">
+          <circle cx="18" cy="18" r="16" fill="url(#goldGrad)" stroke="#fef08a" stroke-width="1.5" />
+          <circle cx="18" cy="18" r="12" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1" stroke-dasharray="2 2" />
+          <path d="M18 9.5l2.6 5.3 5.9.8-4.3 4.2 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.2 5.9-.8L18 9.5z" fill="#ffffff" />
+          <defs>
+            <linearGradient id="goldGrad" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#fef08a" />
+              <stop offset="50%" stop-color="#f59e0b" />
+              <stop offset="100%" stop-color="#d97706" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <span id="quizPtsValue">0 pts</span>
+      </div>
+    </header>
+
+    <div class="control-panel">
+      <div class="field-group">
+        <label>Capacity</label>
+        <select id="bitWidth" onchange="generateQuestion()">
+          <option value="4">4-Bit</option>
+          <option value="8" selected>8-Bit</option>
+          <option value="16">16-Bit</option>
+          <option value="32">32-Bit</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>From</label>
+        <select id="sourceBase" onchange="generateQuestion()">
+          <option value="random">Random</option>
+          <option value="2">Binary</option>
+          <option value="8">Octal</option>
+          <option value="10">Decimal</option>
+          <option value="16">Hex</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>To</label>
+        <select id="targetBase" onchange="generateQuestion()">
+          <option value="random">Random</option>
+          <option value="2">Binary</option>
+          <option value="8">Octal</option>
+          <option value="10">Decimal</option>
+          <option value="16">Hex</option>
+        </select>
+      </div>
+      <div class="switch-container">
+        <label style="font-size: 10px; font-weight: 800; color: var(--text-muted);">POINTS</label>
+        <label class="switch">
+          <input type="checkbox" id="fracToggle" onchange="generateQuestion()">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="display-card">
+      <div class="badge-row">
+        <span class="badge badge-from" id="sourceLbl">Binary</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="3"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14M12 5l7 7-7 7" />
+        </svg>
+        <span class="badge badge-to" id="targetLbl">Decimal</span>
+      </div>
+      <div class="big-number" id="questionValue">0</div>
+    </div>
+
+    <input type="text" id="answerInput" placeholder="Type conversion result..." autocomplete="off">
+
+    <div id="feedback" class="feedback"></div>
+
+    <div class="quiz-action-bar" id="quizActionBar">
+      <button class="btn-action btn-check-main" id="btn-verify" onclick="handleQuizAction()">
+        <span id="btnVerifyText">Check Answer</span>
+      </button>
+      <button class="btn-action btn-next-main" id="btn-next-action" onclick="generateQuestion()">
+        <span>Next Question →</span>
+      </button>
+      <button class="btn-action btn-ai-main" id="quizAiSolBtn" onclick="openQuizAiModal()" style="display:none;">
+        <span>✨ AI Solution</span>
+      </button>
+    </div>
+
+    <div class="stats">
+      <span>Performance: <span id="scoreCorrect" style="color:var(--primary)">0</span>/<span
+          id="scoreTotal">0</span></span>
+      <span>Streak: <span id="streak" style="color:var(--success)">0</span> 🔥</span>
+    </div>
+  </div>
+
+  <footer>
+    Crafted with Engineering Excellence by Sriyans &amp; Devashish © 2026
+  </footer>
+
+  <!-- ============================================================
+       QUIZ AI SOLUTION MODAL
+       ============================================================ -->
+  <div class="lb-modal-overlay" id="quizAiModalOverlay">
+    <div class="lb-modal" style="max-width: 680px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h2 style="margin:0; font-size:18px; color:var(--primary); display:flex; align-items:center; gap:8px;">
+          ✨ Step-by-Step Solution
+        </h2>
+        <button class="lb-close" onclick="closeQuizAiModal()">&times;</button>
+      </div>
+      <div id="quizAiModalBody" style="font-size:14px; line-height:1.6; color:var(--text); max-height:70vh; overflow-y:auto; padding-right:6px;">
+        <!-- Filled dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* Sound Effects (Web Audio API) */
+    let quizAudioCtx = null;
+    function getQuizAudioCtx() {
+      if (!quizAudioCtx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        quizAudioCtx = new AC();
+      }
+      if (quizAudioCtx && quizAudioCtx.state === 'suspended') {
+        quizAudioCtx.resume();
+      }
+      return quizAudioCtx;
+    }
+    function playQuizTone(freq, duration, type = 'sine', gainPeak = 0.18) {
+      try {
+        const ctx = getQuizAudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(gainPeak, ctx.currentTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + duration + 0.02);
+      } catch (e) { }
+    }
+    const playClickSound   = () => playQuizTone(520, 0.06, 'square', 0.1);
+    const playSuccessSound = () => { playQuizTone(660, 0.12, 'sine'); setTimeout(() => playQuizTone(880, 0.18, 'sine'), 90); };
+    const playErrorSound   = () => { playQuizTone(180, 0.22, 'sawtooth', 0.14); };
+
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('button, .btn, .chip, .nav-switch-link, .lb-btn, .theme-toggle-btn, .lb-close, .switch, input[type="button"], input[type="submit"], input[type="checkbox"], .tab, a.btn');
+      if (btn) {
+        playClickSound();
+      }
+    }, true);
+
+    const BASES = { 2: 'Binary', 8: 'Octal', 10: 'Decimal', 16: 'Hex' };
+    const BASE_LIST = [2, 8, 10, 16];
+    let currentQ = null;
+    let stats = { correct: 0, total: 0, streak: 0 };
+    let questionStartTime = Date.now();
+
+    function randInt(bits) {
+      const max = Math.pow(2, bits);
+      const min = Math.pow(2, bits - 4) || 0;
+      return Math.floor(Math.random() * (max - min) + min);
+    }
+
+    /**
+     * Generates a random fractional string in source base `sB` with 2 to 4 digits.
+     * Ensures the last digit is non-zero so there are no trailing zeros.
+     */
+    function generateSourceFracString(sB) {
+      const len = Math.floor(Math.random() * 3) + 2; // 2, 3, or 4 digits
+      let fracStr = "";
+      for (let i = 0; i < len; i++) {
+        let digit;
+        if (i === len - 1) {
+          digit = Math.floor(Math.random() * (sB - 1)) + 1;
+        } else {
+          digit = Math.floor(Math.random() * sB);
+        }
+        fracStr += digit.toString(sB).toUpperCase();
+      }
+      return fracStr;
+    }
+
+    /**
+     * Converts a fractional string `sFrac` in source base `sB` to target base `tB` string representation
+     * by evaluating the exact fractional value of `sFrac` in base `sB`
+     * and performing digit-by-digit recursive multiplication in base `tB` up to max 4 fractional places.
+     */
+    function convertFracBase(sFrac, sB, tB, maxDigits = 4) {
+      if (!sFrac) return "";
+
+      // Calculate exact numeric value of fractional string in base sB
+      let val = 0;
+      for (let i = 0; i < sFrac.length; i++) {
+        const digit = parseInt(sFrac[i], sB);
+        if (isNaN(digit)) continue;
+        val += digit / Math.pow(sB, i + 1);
+      }
+      if (val <= 0) return "";
+
+      // Convert value to target base tB up to max 4 places
+      let res = "";
+      let temp = val;
+      const limit = Math.min(maxDigits, 4);
+      for (let i = 0; i < limit; i++) {
+        temp = Math.round(temp * 1e12) / 1e12; // Guard against IEEE 754 float precision noise
+        if (temp <= 0) break;
+        temp *= tB;
+        let digit = Math.floor(temp);
+        res += digit.toString(tB).toUpperCase();
+        temp -= digit;
+      }
+      return res;
+    }
+
+    function generateQuestion() {
+      const bits = parseInt(document.getElementById('bitWidth').value);
+      const hasFrac = document.getElementById('fracToggle').checked;
+
+      let sB = document.getElementById('sourceBase').value;
+      let tB = document.getElementById('targetBase').value;
+
+      if (sB === 'random') sB = BASE_LIST[Math.floor(Math.random() * 4)];
+      if (tB === 'random') tB = BASE_LIST[Math.floor(Math.random() * 4)];
+
+      sB = parseInt(sB); tB = parseInt(tB);
+      if (sB === tB) {
+        const available = BASE_LIST.filter(b => b !== sB);
+        tB = available[Math.floor(Math.random() * available.length)];
+      }
+
+      const intPart = randInt(bits);
+      const sInt = intPart.toString(sB).toUpperCase();
+      const tInt = intPart.toString(tB).toUpperCase();
+
+      let sFrac = "";
+      let tFrac = "";
+
+      if (hasFrac) {
+        sFrac = generateSourceFracString(sB);
+        tFrac = convertFracBase(sFrac, sB, tB, 4);
+      }
+
+      currentQ = {
+        sB, tB,
+        qStr: sFrac ? `${sInt}.${sFrac}` : sInt,
+        aStr: tFrac ? `${tInt}.${tFrac}` : tInt,
+        isVerified: false
+      };
+
+      document.getElementById('sourceLbl').textContent = BASES[currentQ.sB];
+      document.getElementById('targetLbl').textContent = BASES[currentQ.tB];
+      document.getElementById('questionValue').textContent = currentQ.qStr;
+
+      const ansInp = document.getElementById('answerInput');
+      ansInp.value = "";
+      ansInp.className = "";
+      if (currentQ.tB === 16) {
+        ansInp.setAttribute('inputmode', 'text');
+        ansInp.setAttribute('autocapitalize', 'characters');
+        ansInp.placeholder = "Type hex result (0-9, A-F)...";
+      } else {
+        ansInp.setAttribute('inputmode', 'numeric');
+        ansInp.removeAttribute('autocapitalize');
+        ansInp.placeholder = `Type ${BASES[currentQ.tB]} result...`;
+      }
+
+      document.getElementById('feedback').style.display = "none";
+      const aiBtn = document.getElementById('quizAiSolBtn');
+      if (aiBtn) aiBtn.style.display = "none";
+
+      const btnVerifyTxt = document.getElementById('btnVerifyText');
+      if (btnVerifyTxt) btnVerifyTxt.textContent = "Check Answer";
+
+      // Prefetch Gemini AI step-by-step conversion solution in background immediately
+      prefetchQuizAiSolution(currentQ);
+
+      questionStartTime = Date.now();
+      setTimeout(() => { ansInp.focus(); }, 50);
+    }
+
+    function normalize(s) {
+      if (!s) return "";
+      let c = s.trim().toUpperCase().replace(/^0[B|X|O]/, "");
+      let [i, f] = c.split('.');
+      i = i ? i.replace(/^0+/, '') : "0";
+      if (i === "") i = "0";
+      if (f) {
+        f = f.substring(0, 4).replace(/0+$/, '');
+        return f.length ? i + "." + f : i;
+      }
+      return i;
+    }
+
+    function handleQuizAction() {
+      if (currentQ && currentQ.isVerified) {
+        generateQuestion();
+      } else {
+        verifyAnswer();
+      }
+    }
+
+    function verifyAnswer() {
+      if (!currentQ) return;
+      const ansInp = document.getElementById('answerInput');
+      const userRaw = ansInp.value.trim();
+      const userNorm = normalize(userRaw);
+      const correctNorm = normalize(currentQ.aStr);
+      const isCorrect = userNorm === correctNorm;
+
+      currentQ.isVerified = true;
+      stats.total++;
+      const fb = document.getElementById('feedback');
+      fb.style.display = "block";
+
+      const elapsedSec = (Date.now() - questionStartTime) / 1000;
+      const bitLevel = document.getElementById('bitWidth').value;
+
+      let ptsRes = { pointsDelta: 0, masteredFromNotebook: false };
+      if (window.NST && window.NST.recordQuestionResult) {
+        const problemDesc = `${BASES[currentQ.sB]} ➔ ${BASES[currentQ.tB]} (${currentQ.qStr})`;
+        ptsRes = window.NST.recordQuestionResult({
+          type: 'conversion',
+          problemStr: problemDesc,
+          userAnswer: userRaw || 'Empty',
+          correctAnswer: currentQ.aStr,
+          isCorrect: isCorrect,
+          level: bitLevel,
+          timeSeconds: elapsedSec,
+          extraData: {
+            sB: currentQ.sB,
+            tB: currentQ.tB,
+            qStr: currentQ.qStr,
+            aStr: currentQ.aStr
+          }
+        });
+        updateQuizPtsBadge();
+      }
+
+      const deltaTag = ptsRes.pointsDelta > 0 ? `+${ptsRes.pointsDelta} pts` : `${ptsRes.pointsDelta} pts`;
+      const deltaColor = ptsRes.pointsDelta > 0 ? '#15803d' : '#b91c1c';
+
+      if (isCorrect) {
+        playSuccessSound();
+        stats.correct++;
+        stats.streak = ptsRes.currentStreak || (stats.streak + 1);
+        ansInp.className = "correct success";
+        fb.className = "feedback success";
+        fb.innerHTML = `✓ <b>Logic Confirmed!</b> Excellent work. <span style="font-weight:800; color:${deltaColor};">(${deltaTag})</span>`;
+      } else {
+        playErrorSound();
+        stats.streak = 0;
+        ansInp.className = "wrong fail";
+        fb.className = "feedback fail";
+        fb.innerHTML = `✗ <b>Discrepancy Detected.</b> Correct result: <code>${currentQ.aStr}</code> <span style="font-weight:800; color:${deltaColor};">(${deltaTag})</span>`;
+      }
+      updateStats();
+
+      // Reveal the Gemini AI Solution button ONLY AFTER the user submits
+      const aiBtn = document.getElementById('quizAiSolBtn');
+      if (aiBtn) aiBtn.style.display = "inline-flex";
+
+      const btnVerifyTxt = document.getElementById('btnVerifyText');
+      if (btnVerifyTxt) btnVerifyTxt.textContent = "Next Question →";
+    }
+
+    /* ---------------------------------------------------------------------
+       QUIZ GEMINI AI PREFETCH & CONVERSION STEP ENGINE
+       --------------------------------------------------------------------- */
+    function prefetchQuizAiSolution(q) {
+      if (!q || q.aiSolutionPromise) return;
+
+      const sName = BASES[q.sB] || `Base ${q.sB}`;
+      const tName = BASES[q.tB] || `Base ${q.tB}`;
+
+      const prompt = `You are an expert Computer Science and Digital Logic tutor.
+Provide a clean, beautifully formatted, step-by-step mathematical explanation for converting the number "${q.qStr}" from Base ${q.sB} (${sName}) to Base ${q.tB} (${tName}):
+- Source Number: ${q.qStr} in Base ${q.sB} (${sName})
+- Target Base: Base ${q.tB} (${tName})
+- Correct Output: ${q.aStr}
+
+CRITICAL FORMATTING INSTRUCTIONS:
+1. DO NOT write or output any programming code, Python scripts, function definitions, code blocks, or library imports (e.g. "import math", "import numpy", "def convert()").
+2. DO NOT use raw LaTeX equations like \\frac, \\begin{align}, \\text{}, or dollar-sign math ($$). Use clean Unicode symbols (×, ÷, +, −, ➔, 2³, 16¹, Base 16).
+3. Use clean Markdown headings (### for title, #### for steps), numbered lists (1., 2., 3.), bold text, and inline code backticks (\`...\`) for numbers and intermediate digits.
+4. End clearly with "**Final Result:** \`${q.aStr}\`".`;
+
+      if (window.callGeminiAPI) {
+        q.aiSolutionPromise = window.callGeminiAPI(prompt).then(sol => {
+          return sol || generateFallbackConversionExplanation(q);
+        }).catch((err) => {
+          console.warn("Gemini API call failed for conversion, generating fallback:", err);
+          return generateFallbackConversionExplanation(q);
+        });
+      } else {
+        q.aiSolutionPromise = Promise.resolve(generateFallbackConversionExplanation(q));
+      }
+    }
+
+    function generateFallbackConversionExplanation(q) {
+      const sName = BASES[q.sB] || `Base ${q.sB}`;
+      const tName = BASES[q.tB] || `Base ${q.tB}`;
+
+      let md = `### Step-by-Step Conversion: ${sName} ➔ ${tName}\n\n`;
+      md += `**Problem:** Convert \`${q.qStr}\` (${sName}) to **${tName} (Base ${q.tB})**\n\n`;
+
+      const [intPart, fracPart] = q.qStr.split('.');
+      md += `#### 1. Integer Part Conversion (\`${intPart}\`):\n`;
+      const decimalInt = parseInt(intPart, q.sB);
+      if (q.sB !== 10) {
+        md += `- Expand \`${intPart}\` in Base ${q.sB}: Decimal value = \`${decimalInt}\`.\n`;
+      }
+      if (q.tB !== 10) {
+        md += `- Convert Decimal \`${decimalInt}\` to Base ${q.tB} via division by ${q.tB}: Integer result = \`${decimalInt.toString(q.tB).toUpperCase()}\`.\n`;
+      } else {
+        md += `- Decimal result = \`${decimalInt}\`.\n`;
+      }
+
+      if (fracPart) {
+        md += `\n#### 2. Fractional Part Conversion (\`.${fracPart}\`):\n`;
+        md += `- Evaluate fractional digits in Base ${q.sB} and recursively multiply by ${q.tB}.\n`;
+        const convertedFrac = convertFracBase(fracPart, q.sB, q.tB, 4);
+        md += `- Converted fractional part = \`.${convertedFrac}\`.\n`;
+      }
+
+      md += `\n**Final Result:** \`${q.aStr}\` (${tName})\n`;
+      return md;
+    }
+
+    function formatMarkdownToHTML(md) {
+      if (!md) return '';
+
+      // Pre-process & clean LaTeX/math symbols, dollar signs, and code block noise
+      let sanitized = md
+        // Strip code fences
+        .replace(/```[a-z]*/gi, '')
+        // Clean LaTeX math blocks $$ ... $$ and $ ... $
+        .replace(/\$\$\\text\{([^}]+)\}\$\$/g, '$1')
+        .replace(/\$\$(.*?)\$\$/gs, (_, inner) => inner.trim())
+        .replace(/\$\\text\{([^}]+)\}\$/g, '$1')
+        .replace(/\$([^$]+)\$/g, (_, inner) => {
+          let cleaned = inner
+            .replace(/\\text\{([^}]+)\}/g, '$1')
+            .replace(/\\times/g, '×')
+            .replace(/\\div/g, '÷')
+            .replace(/\\cdot/g, '·')
+            .replace(/\\rightarrow|\\Rightarrow|\\to/g, '➔')
+            .replace(/_\{(\d+)\}/g, '<sub>$1</sub>')
+            .replace(/_(\d+)/g, '<sub>$1</sub>')
+            .replace(/\^\{(\d+)\}/g, '<sup>$1</sup>')
+            .replace(/\^(\d+)/g, '<sup>$1</sup>');
+          return `<code class="sol-code-pill">${cleaned}</code>`;
+        })
+        // Standalone LaTeX symbol replacements
+        .replace(/\\text\{([^}]+)\}/g, '$1')
+        .replace(/\\times/g, '×')
+        .replace(/\\div/g, '÷')
+        .replace(/\\cdot/g, '·')
+        .replace(/\\rightarrow|\\Rightarrow|\\to/g, '➔')
+        .replace(/_\{(\d+)\}/g, '<sub>$1</sub>')
+        .replace(/_(\d+)/g, '<sub>$1</sub>')
+        .replace(/\^\{(\d+)\}/g, '<sup>$1</sup>')
+        .replace(/\^(\d+)/g, '<sup>$1</sup>')
+        // Remove leftover dollar signs
+        .replace(/\$/g, '');
+
+      const lines = sanitized.split('\n');
+      let out = ['<div class="sol-container">'];
+
+      lines.forEach(rawLine => {
+        let line = rawLine.trim();
+        if (!line) return;
+
+        // Filter out code block markers and programming library imports
+        if (line.startsWith('```') || /^import\s+/i.test(line) || /^from\s+/i.test(line) || /^def\s+/i.test(line) || /^return\s+/i.test(line) || /soek/i.test(line)) {
+          return;
+        }
+
+        if (line.startsWith('### ') || line.startsWith('## ') || line.startsWith('# ')) {
+          const title = line.replace(/^#{1,3}\s+/, '').replace(/^#+\s*/, '');
+          out.push(`
+            <div class="sol-header-card">
+              <span class="sol-tag">✨ Step-by-Step AI Solution</span>
+              <h3 class="sol-title">${title}</h3>
+            </div>
+          `);
+          return;
+        }
+
+        if (line.startsWith('#### ')) {
+          const subTitle = line.replace(/^#{4}\s+/, '').replace(/^#+\s*/, '');
+          out.push(`
+            <div class="sol-step-heading">
+              <span>💡</span>
+              <span>${subTitle}</span>
+            </div>
+          `);
+          return;
+        }
+
+        let formatted = line
+          .replace(/^#+\s*/, '') // strip any leftover leading #
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/`([^`]+)`/g, '<code class="sol-code-pill">$1</code>');
+
+        if (line.includes('Final Result:') || line.includes('Final Product:') || line.includes('Final Difference:') || line.includes('Final Conversion:')) {
+          const valMatch = line.match(/`([^`]+)`/) || line.match(/<strong>(.*?)<\/strong>/);
+          const valStr = valMatch ? valMatch[1] : line.replace(/.*?:/, '').replace(/[$#]/g, '').trim();
+          out.push(`
+            <div class="sol-result-card">
+              <span class="sol-res-label">🎯 Final Conversion</span>
+              <div class="sol-res-value">${valStr}</div>
+            </div>
+          `);
+          return;
+        }
+
+        if (line.startsWith('**Problem:**') || line.startsWith('Problem:')) {
+          out.push(`
+            <div class="sol-problem-box">
+              ${formatted}
+            </div>
+          `);
+          return;
+        }
+
+        const numMatch = line.match(/^(\d+)\.\s+(.*)/);
+        if (numMatch) {
+          const stepNum = numMatch[1];
+          const stepText = numMatch[2]
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/`([^`]+)`/g, '<code class="sol-code-pill">$1</code>');
+
+          out.push(`
+            <div class="sol-step-item">
+              <div class="sol-step-badge">${stepNum}</div>
+              <div class="sol-step-text">${stepText}</div>
+            </div>
+          `);
+          return;
+        }
+
+        if (line.startsWith('- ') || line.startsWith('* ')) {
+          const bulletText = formatted.replace(/^[-*]\s+/, '');
+          out.push(`
+            <div class="sol-step-item">
+              <div class="sol-step-badge" style="background:rgba(99,102,241,0.2); color:#a5b4fc; box-shadow:none;">•</div>
+              <div class="sol-step-text">${bulletText}</div>
+            </div>
+          `);
+          return;
+        }
+
+        out.push(`<p style="margin:2px 0; font-size:13.5px; line-height:1.6; color:var(--text);">${formatted}</p>`);
+      });
+
+      out.push('</div>');
+      return out.join('\n');
+    }
+
+    function openQuizAiModal() {
+      const overlay = document.getElementById('quizAiModalOverlay');
+      if (!overlay) return;
+      overlay.style.display = 'flex';
+      overlay.classList.add('show');
+
+      const body = document.getElementById('quizAiModalBody');
+      if (!currentQ) {
+        body.innerHTML = '<p>No active question found.</p>';
+        return;
+      }
+
+      body.innerHTML = `
+        <div style="text-align:center; padding:30px;">
+          <div style="font-size:16px; font-weight:700; color:var(--primary);">✨ Gemini AI is generating step-by-step solution...</div>
+          <div style="font-size:13px; color:var(--item-subtext, #64748b); margin-top:8px;">Analyzing place values & base conversion steps</div>
+        </div>
+      `;
+
+      if (!currentQ.aiSolutionPromise) prefetchQuizAiSolution(currentQ);
+
+      currentQ.aiSolutionPromise.then(solutionMd => {
+        body.innerHTML = formatMarkdownToHTML(solutionMd || generateFallbackConversionExplanation(currentQ));
+      }).catch(() => {
+        body.innerHTML = formatMarkdownToHTML(generateFallbackConversionExplanation(currentQ));
+      });
+    }
+
+    function closeQuizAiModal() {
+      const overlay = document.getElementById('quizAiModalOverlay');
+      if (overlay) {
+        overlay.classList.remove('show');
+        overlay.style.display = 'none';
+      }
+    }
+
+    function updateQuizPtsBadge() {
+      const el = document.getElementById('quizPtsValue');
+      if (!el) return;
+      const st = window.NST ? window.NST.getStats() : null;
+      if (st) el.textContent = st.points + ' pts';
+    }
+
+    function syncStatsFromNST() {
+      if (window.NST && window.NST.getStats) {
+        const st = window.NST.getStats();
+        if (st) {
+          stats.streak = st.currentStreak || 0;
+          if (st.conversions && st.conversions > stats.total) {
+            stats.total = st.conversions;
+          }
+        }
+      }
+    }
+
+    function updateStats() {
+      syncStatsFromNST();
+      document.getElementById('scoreCorrect').textContent = stats.correct;
+      document.getElementById('scoreTotal').textContent = stats.total;
+      document.getElementById('streak').textContent = stats.streak;
+    }
+
+    window.refreshDashboardUI = function() {
+      updateQuizPtsBadge();
+      updateStats();
+    };
+
+    // ── HISTORY MODAL HANDLERS ────────────────────────────────────────────────
+    function openHistoryModal() {
+      const overlay = document.getElementById('historyOverlay');
+      if (!overlay) return;
+      overlay.classList.add('show');
+      renderHistoryList();
+    }
+
+    function closeHistoryModal() {
+      const overlay = document.getElementById('historyOverlay');
+      if (overlay) overlay.classList.remove('show');
+    }
+
+    function renderHistoryList() {
+      const body = document.getElementById('historyBody');
+      if (!body) return;
+      const history = window.NST ? window.NST.getHistory() : [];
+      if (!history || !history.length) {
+        body.innerHTML = '<p class="lb-empty">No solved questions yet. Solve some conversion problems!</p>';
+        return;
+      }
+      let html = `<div style="display:flex; flex-direction:column; gap:10px;">`;
+      history.forEach((item) => {
+        const isCorrect = item.isCorrect;
+        const badgeBg = isCorrect ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)';
+        const badgeColor = isCorrect ? '#10b981' : '#f43f5e';
+        const ptsText = item.pointsDelta > 0 ? `+${item.pointsDelta} pts` : `${item.pointsDelta} pts`;
+        const ptsBg = item.pointsDelta > 0 ? 'rgba(245,158,11,0.18)' : 'rgba(239,68,68,0.15)';
+        const ptsColor = item.pointsDelta > 0 ? '#f59e0b' : '#f43f5e';
+
+        html += `
+          <div style="background:var(--card-item-bg); border:1px solid var(--card-item-border); border-radius:12px; padding:12px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:11px; font-weight:700; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:6px; text-transform:uppercase;">${item.type}</span>
+                <span style="font-size:13px; font-weight:700; color:var(--item-text);">${item.problem}</span>
+              </div>
+              <div style="font-size:12px; color:var(--item-subtext); font-family:'JetBrains Mono',monospace; margin-top:3px;">
+                Entered: <b style="color:var(--item-text);">${item.userAnswer}</b> | Target: <b style="color:var(--item-text);">${item.correctAnswer}</b>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:12px; font-weight:700; background:${ptsBg}; color:${ptsColor}; padding:3px 10px; border-radius:999px;">${ptsText}</span>
+              <span style="font-size:12px; font-weight:700; background:${badgeBg}; color:${badgeColor}; padding:3px 10px; border-radius:999px;">${isCorrect ? '✅ Correct' : '❌ Incorrect'}</span>
+            </div>
+          </div>
+        `;
+      });
+      html += `</div>`;
+      body.innerHTML = html;
+    }
+
+    // ── INITIALIZATION ────────────────────────────────────────────────────────
+    generateQuestion();
+
+    const quizInput = document.getElementById('answerInput');
+    quizInput.addEventListener('input', function() {
+      const start = this.selectionStart;
+      const end = this.selectionEnd;
+      this.value = this.value.toUpperCase();
+      if (start !== null && end !== null) {
+        this.setSelectionRange(start, end);
+      }
+    });
+    quizInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleQuizAction();
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.NST) {
+        window.NST.injectTimeGreeting();
+        updateQuizPtsBadge();
+      }
+
+      const histOverlay = document.getElementById('historyOverlay');
+      if (histOverlay) {
+        histOverlay.addEventListener('click', (e) => {
+          if (e.target === histOverlay) closeHistoryModal();
+        });
+      }
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          closeHistoryModal();
+        }
+      });
+    });
+
+    if (document.readyState !== 'loading') {
+      if (window.NST) {
+        window.NST.injectTimeGreeting();
+        updateQuizPtsBadge();
+      }
+    }
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,3130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Number Base Arithmetic Trainer</title>
+<!-- Unified Coding Logo Favicon -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%236366f1'/%3E%3Cstop offset='100%25' stop-color='%23a855f7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='24' fill='url(%23g)'/%3E%3Cpath d='M30 32 L16 50 L30 68 M70 32 L84 50 L70 68 M56 22 L44 78' stroke='white' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+<!-- Firebase SDK & Route Protection Script -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="script.js"></script>
+<style>
+  /* ============================================================
+     DESIGN TOKENS — CINEMATIC DARK THEME
+     ============================================================ */
+  :root{
+    --bg:            #070a12;
+    --bg-soft:       rgba(30, 41, 59, 0.65);
+    --card:          rgba(15, 23, 42, 0.82);
+    --card-hover:    rgba(30, 41, 59, 0.85);
+    --border:        rgba(255, 255, 255, 0.12);
+    --primary:       #6366f1;
+    --primary-dark:  #4f46e5;
+    --success:       #10b981;
+    --error:         #f43f5e;
+    --purple:        #a855f7;
+    --warning:       #f59e0b;
+    --muted:         #94a3b8;
+    --text:          #f8fafc;
+    --shadow:        0 16px 40px rgba(0,0,0,.60), 0 0 25px rgba(99,102,241,.15);
+    --answer-filled-bg: rgba(99, 102, 241, 0.28);
+    --header-grad-a: #ffffff;
+    --header-grad-b: #a5b4fc;
+    --radial-1:      rgba(99,102,241,.25);
+    --radial-2:      rgba(168,85,247,.20);
+
+    /* Refined modern ambient mesh color tokens — cinematic neon space */
+    --blob-indigo:  rgba(99,102,241,.32);
+    --blob-purple:  rgba(168,85,247,.28);
+    --blob-emerald: rgba(16,185,129,.20);
+    --blob-blue:    rgba(59,130,246,.25);
+    --blob-opacity: .90;
+    --blob-blur:    65px;
+
+    --box-size:      44px;
+    --box-gap:       6px;
+    --label-width:   34px;
+    --radius:        18px;
+    --font-ui:       'Segoe UI', system-ui, -apple-system, sans-serif;
+    --font-mono:     'Consolas', 'SFMono-Regular', 'Courier New', monospace;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{
+    margin:0; padding:0; width:100%; min-height:100vh;
+    background:
+      radial-gradient(circle at 15% 0%, var(--radial-1), transparent 45%),
+      radial-gradient(circle at 90% 10%, var(--radial-2), transparent 40%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--font-ui);
+    overflow-x:hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button{ font-family:inherit; }
+
+  /* ============================================================
+     SCREEN SWITCHING
+     ============================================================ */
+  .screen{
+    display:none;
+    min-height:100vh;
+    width:100%;
+    animation: fadeIn .45s ease;
+  }
+  .screen.active{ display:flex; flex-direction:column; align-items:center; }
+
+  @keyframes fadeIn{
+    from{ opacity:0; transform:translateY(8px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+
+  /* ============================================================
+     HOME SCREEN
+     ============================================================ */
+  #home-screen{ padding:40px 20px 40px; position:relative; z-index:0; overflow:hidden; }
+  #practice-screen{ position:relative; z-index:0; overflow:hidden; }
+
+  /* Ambient four-color gradient mesh — modern "AI app" feel.
+     Stretches across the FULL height of the screen's content
+     (not just one viewport) so it stays visible while scrolling,
+     and sits behind all content in both themes. Applied to both the
+     home screen and the practice screen for a consistent look. */
+  #home-screen::before,
+  #practice-screen::before{
+    content:'';
+    position:absolute; inset:-12% -12%; z-index:-1;
+    background:
+      radial-gradient(circle at 12% 12%, var(--blob-indigo),  transparent 44%),
+      radial-gradient(circle at 88% 10%, var(--blob-purple),  transparent 42%),
+      radial-gradient(circle at 80% 88%, var(--blob-emerald), transparent 45%),
+      radial-gradient(circle at 10% 90%, var(--blob-blue),    transparent 45%);
+    filter: blur(var(--blob-blur));
+    opacity: var(--blob-opacity);
+    will-change: transform;
+    transform: translate3d(0, 0, 0);
+    animation: ambientDrift 20s ease-in-out infinite alternate;
+    pointer-events:none;
+  }
+  @keyframes ambientDrift{
+    0%{   transform: scale(1) translate3d(0,0,0) rotate(0deg); }
+    50%{  transform: scale(1.06) translate3d(-1.5%,1.5%,0) rotate(2deg); }
+    100%{ transform: scale(1.03) translate3d(1.5%,-1%,0) rotate(-1deg); }
+  }
+
+  .home-header{ text-align:center; margin-bottom:26px; animation: slideDown .5s ease; }
+  @keyframes slideDown{ from{opacity:0; transform:translateY(-16px);} to{opacity:1; transform:translateY(0);} }
+
+  .home-header h1{
+    font-size:clamp(26px,5vw,42px);
+    margin:0 0 8px;
+    background:linear-gradient(120deg,var(--header-grad-a),var(--header-grad-b));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    letter-spacing:.5px;
+  }
+  .home-header p{ color:var(--muted); margin:0 0 14px; font-size:15px; }
+  .nav-switch-link{
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:13px; font-weight:700; text-decoration:none;
+    color:#fff; background:linear-gradient(120deg, var(--primary), var(--purple));
+    padding:9px 18px; border-radius:999px;
+    box-shadow:0 8px 20px rgba(59,130,246,.3);
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .nav-switch-link:hover{ transform:translateY(-2px); box-shadow:0 12px 26px rgba(59,130,246,.4); }
+
+  .section-block{
+    width:100%; max-width:900px; margin-bottom:22px;
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+    padding:20px 22px; box-shadow:var(--shadow);
+    animation: slideUp .5s ease backwards;
+  }
+  .section-block:nth-of-type(2){ animation-delay:.06s; }
+  .section-block:nth-of-type(3){ animation-delay:.12s; }
+  @keyframes slideUp{ from{opacity:0; transform:translateY(20px);} to{opacity:1; transform:translateY(0);} }
+
+  .section-heading{
+    display:flex; align-items:center; gap:10px; margin:0 0 14px 2px;
+  }
+  .section-heading h2{ font-size:18px; margin:0; }
+  .section-badge{
+    font-size:11px; font-weight:700; letter-spacing:.5px; color:var(--muted);
+    background:var(--bg-soft); border:1px solid var(--border);
+    padding:3px 10px; border-radius:999px;
+  }
+
+  .mode-grid{
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:14px;
+  }
+  .mode-card{
+    background:var(--bg-soft);
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:18px 16px;
+    cursor:pointer;
+    text-align:left;
+    box-shadow:0 2px 8px rgba(15,23,42,.04);
+    transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease, background .22s ease;
+  }
+  .mode-card:hover{ transform:translateY(-3px); border-color:var(--primary); background:var(--card-hover); box-shadow:0 14px 28px rgba(37,99,235,.14); }
+  .mode-card:active{ transform:translateY(-1px) scale(.98); }
+
+  .mode-card .icon{ font-size:24px; margin-bottom:8px; display:block; }
+  .mode-card h3{ margin:0 0 4px; font-size:15.5px; }
+  .mode-card p{ margin:0; color:var(--muted); font-size:12px; line-height:1.4; }
+
+  .mode-card.op-add .icon{ color:var(--success); }
+  .mode-card.op-sub .icon{ color:var(--error); }
+  .mode-card.op-mul .icon{ color:var(--primary); }
+
+  .settings-panel{
+    width:100%; max-width:900px;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:22px 24px;
+    box-shadow:var(--shadow);
+    animation: slideUp .5s ease .18s backwards;
+  }
+  .settings-panel h3{ margin:0 0 16px; font-size:15px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; font-weight:600; }
+
+  .setting-row{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; padding:12px 0; border-top:1px solid var(--border);
+    flex-wrap:wrap;
+  }
+  .setting-row:first-of-type{ border-top:none; padding-top:0; }
+  .setting-label{ font-size:14.5px; }
+  .setting-label small{ display:block; color:var(--muted); font-size:12px; margin-top:2px; }
+
+  .pill-group{ display:flex; gap:8px; flex-wrap:wrap; }
+  .pill{
+    padding:8px 14px; border-radius:999px; border:1px solid var(--border);
+    background:var(--bg-soft); color:var(--muted); cursor:pointer; font-size:13px;
+    font-weight:600; transition: all .2s ease; display:flex; flex-direction:column; align-items:center; line-height:1.25;
+  }
+  .pill .pill-count{ font-size:10.5px; font-weight:600; opacity:.75; }
+  .pill:hover{ border-color:var(--primary); color:var(--text); }
+  .pill.active{ background:var(--primary); border-color:var(--primary); color:#fff; box-shadow:0 4px 14px rgba(59,130,246,.4); }
+  .pill.active .pill-count{ opacity:.9; }
+
+  .setting-hint{ width:100%; font-size:11.5px; color:var(--muted); margin-top:8px; }
+
+  /* toggle switch */
+  .switch{ position:relative; width:46px; height:26px; flex-shrink:0; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .switch-track{
+    position:absolute; inset:0; background:var(--bg-soft); border:1px solid var(--border);
+    border-radius:999px; cursor:pointer; transition: background .25s ease;
+  }
+  .switch-track::before{
+    content:''; position:absolute; width:18px; height:18px; left:3px; top:2.5px;
+    background:#fff; border-radius:50%; transition: transform .25s ease;
+    box-shadow:0 2px 4px rgba(0,0,0,.3);
+  }
+  .switch input:checked + .switch-track{ background:var(--primary); }
+  .switch input:checked + .switch-track::before{ transform:translateX(20px); }
+
+  /* footer credit */
+  .home-footer{
+    width:100%; max-width:900px; text-align:center; margin-top:26px;
+    padding-top:18px; border-top:1px solid var(--border);
+    color:var(--muted); font-size:12.5px; line-height:1.7;
+    animation: slideUp .5s ease .24s backwards;
+  }
+  .home-footer strong{ color:var(--text); }
+  .home-footer a{ color:var(--primary); text-decoration:none; }
+  .home-footer a:hover{ text-decoration:underline; }
+
+  /* ============================================================
+     PRACTICE SCREEN
+     ============================================================ */
+  #practice-screen{ padding:18px 14px 50px; }
+
+  .practice-header{
+    width:100%; max-width:980px;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:10px; margin-bottom:18px; flex-wrap:wrap;
+  }
+  .back-btn{
+    background:var(--card); border:1px solid var(--border); color:var(--text);
+    padding:10px 16px; border-radius:10px; cursor:pointer; font-size:14px;
+    display:flex; align-items:center; gap:6px; transition: all .2s ease;
+  }
+  .back-btn:hover{ background:var(--card-hover); border-color:var(--primary); }
+
+  .practice-title{ font-size:clamp(17px,3vw,22px); font-weight:700; text-align:center; flex:1; }
+
+  .stat-chip{
+    background:var(--card); border:1px solid var(--border); border-radius:10px;
+    padding:9px 14px; font-size:13px; color:var(--muted); display:flex; gap:6px; align-items:center;
+    font-family:var(--font-mono);
+  }
+  .stat-chip b{ color:var(--text); }
+
+  .live-bar{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+
+  /* problem card */
+  .problem-card{
+    width:100%; max-width:980px;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:28px 18px;
+    margin-bottom:20px;
+    animation: cardIn .4s ease;
+  }
+  @keyframes cardIn{ from{opacity:0; transform:translateX(24px);} to{opacity:1; transform:translateX(0);} }
+
+  .problem-scroll{ width:100%; overflow-x:auto; overflow-y:hidden; padding-bottom:4px; }
+  .problem-scroll::-webkit-scrollbar{ height:6px; }
+  .problem-scroll::-webkit-scrollbar-thumb{ background:var(--border); border-radius:6px; }
+
+  .bit-row{
+    display:flex; align-items:center; justify-content:flex-end;
+    gap:var(--box-gap); margin:4px 0;
+  }
+  .row-label{
+    width:var(--label-width); min-width:var(--label-width);
+    text-align:center; font-size:20px; font-weight:700; color:var(--muted);
+    font-family:var(--font-mono); flex-shrink:0;
+  }
+  .row-label.operator{ color:var(--primary); }
+
+  .bit-box{
+    width:var(--box-size); height:var(--box-size); min-width:var(--box-size);
+    display:flex; align-items:center; justify-content:center;
+    background:var(--bg-soft); border:1.5px solid var(--border);
+    border-radius:8px; font-family:var(--font-mono);
+    font-size:calc(var(--box-size) * 0.42); font-weight:700;
+    color:var(--text); flex-shrink:0; user-select:none;
+    transition: transform .15s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;
+  }
+
+  .divider-line{
+    width:100%; max-width:100%; height:3px; background:var(--text);
+    margin:10px 0 14px; border-radius:2px; opacity:.85;
+  }
+
+  .bit-box.dot-box {
+    width: calc(var(--box-size) * 0.45);
+    min-width: 16px;
+    background: transparent;
+    border: none;
+    font-weight: 900;
+    font-size: calc(var(--box-size) * 0.55);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  /* carry / borrow indicator row */
+  .indicator-row{
+    display:flex; align-items:center; justify-content:flex-end;
+    gap:var(--box-gap); margin-bottom:2px; min-height:26px; position:relative;
+  }
+  .indicator-box{
+    width:var(--box-size); min-width:var(--box-size); flex-shrink:0;
+    text-align:center; font-size:13px; font-weight:700;
+    font-family:var(--font-mono); color:var(--success);
+    opacity:0; transform:translateY(6px);
+    transition: opacity .3s ease, transform .3s ease;
+  }
+  .indicator-box.borrow{ color:var(--error); }
+  .indicator-box.show{ opacity:1; transform:translateY(0); }
+
+  /* answer boxes */
+  .answer-box{ cursor:pointer; position:relative; touch-action:manipulation; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
+  .answer-box::selection, .bit-box::selection, input.bit-box::selection { background: transparent !important; color: inherit !important; }
+  .answer-box::-moz-selection, .bit-box::-moz-selection, input.bit-box::-moz-selection { background: transparent !important; color: inherit !important; }
+  .answer-box:hover{ border-color:var(--primary); transform:translateY(-2px); }
+  .answer-box:focus{ outline:2px solid var(--primary); outline-offset:2px; }
+  .answer-box.placeholder{ color:var(--muted); }
+  .answer-box.filled{ color:var(--text); border-color:var(--primary-dark); background:var(--answer-filled-bg); }
+
+  input.bit-box.answer-box{
+    text-align:center;
+    padding:0;
+    margin:0;
+    outline:none;
+    box-sizing:border-box;
+    caret-color:var(--primary);
+    -webkit-appearance:none;
+    appearance:none;
+    user-select:none;
+    -webkit-user-select:none;
+  }
+  input.bit-box.answer-box::placeholder{
+    color:var(--muted);
+    opacity:1;
+  }
+
+  .single-answer-input{
+    min-width: 200px;
+    max-width: 440px;
+    height: 44px;
+    font-family: var(--font-mono);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-align: center;
+    padding: 0 12px;
+    border-radius: var(--radius-sm);
+    border: 2px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+    box-sizing: border-box;
+    caret-color: var(--primary);
+  }
+  .single-answer-input:focus{
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.2);
+    background: var(--answer-filled-bg);
+  }
+  .single-answer-input.correct{
+    background: rgba(34,197,94,.18);
+    border-color: var(--success);
+    color: var(--success);
+    animation: glow .6s ease;
+  }
+  .single-answer-input.wrong{
+    background: rgba(239,68,68,.18);
+    border-color: var(--error);
+    color: var(--error);
+    animation: shake .45s ease;
+  }
+  .single-answer-input::placeholder{
+    color: var(--muted);
+    font-size: 13px;
+    letter-spacing: normal;
+    font-family: var(--font-sans);
+    font-weight: 500;
+  }
+
+  .answer-box.correct{
+    background:rgba(34,197,94,.18); border-color:var(--success); color:var(--success);
+    animation: glow .6s ease;
+  }
+  .answer-box.wrong{
+    background:rgba(239,68,68,.18); border-color:var(--error); color:var(--error);
+    animation: shake .45s ease;
+  }
+  .answer-box.unanswered-mark{
+    background:rgba(148,163,184,.12); border-color:var(--muted); color:var(--muted);
+  }
+  .answer-box.reveal-anim{ animation: popIn .35s ease; }
+
+  @keyframes glow{
+    0%{ box-shadow:0 0 0 rgba(34,197,94,0); }
+    40%{ box-shadow:0 0 18px rgba(34,197,94,.7); }
+    100%{ box-shadow:0 0 0 rgba(34,197,94,0); }
+  }
+  @keyframes shake{
+    0%,100%{ transform:translateX(0); }
+    20%{ transform:translateX(-6px); }
+    40%{ transform:translateX(6px); }
+    60%{ transform:translateX(-4px); }
+    80%{ transform:translateX(4px); }
+  }
+  @keyframes popIn{
+    0%{ transform:scale(.4); opacity:0; }
+    60%{ transform:scale(1.12); opacity:1; }
+    100%{ transform:scale(1); }
+  }
+
+  /* score display */
+  .score-display{ text-align:center; margin-top:18px; min-height:56px; }
+  .score-display .label{ color:var(--muted); font-size:13px; text-transform:uppercase; letter-spacing:1px; }
+  .score-display .value{ font-size:30px; font-weight:800; font-family:var(--font-mono); }
+  .score-display .value.good{ color:var(--success); }
+  .score-display .value.bad{ color:var(--error); }
+
+  /* controls */
+  .controls{
+    width:100%; max-width:980px; display:flex; gap:10px; flex-wrap:wrap; justify-content:center;
+    margin-bottom:22px;
+  }
+  .btn{
+    border:none; border-radius:16px; padding:13px 22px; font-size:14px; font-weight:600;
+    cursor:pointer; color:#fff; display:flex; align-items:center; gap:6px;
+    transition: transform .18s ease, box-shadow .25s ease, filter .2s ease, background .2s ease;
+    box-shadow:0 8px 20px rgba(37,99,235,.18);
+  }
+  .btn:hover{ transform:translateY(-2px); box-shadow:0 12px 26px rgba(37,99,235,.24); }
+  .btn:active{ transform:translateY(0) scale(.97); box-shadow:0 4px 12px rgba(37,99,235,.18); }
+  .btn.primary{ background:linear-gradient(135deg,var(--primary),var(--primary-dark)); }
+  .btn.ghost{
+    background:var(--card); border:1px solid var(--border); color:var(--text);
+    box-shadow:0 4px 12px rgba(15,23,42,.05);
+  }
+  .btn.ghost:hover{ border-color:var(--primary); background:var(--card-hover); box-shadow:0 8px 18px rgba(15,23,42,.08); }
+  .btn.success{ background:linear-gradient(135deg,#22c55e,#16a34a); box-shadow:0 8px 20px rgba(22,163,74,.2); }
+  .btn:disabled{ opacity:.4; cursor:not-allowed; transform:none !important; filter:none !important; box-shadow:none !important; }
+
+  /* stats grid */
+  .stats-panel{
+    width:100%; max-width:980px; background:var(--card); border:1px solid var(--border);
+    border-radius:var(--radius); padding:20px; box-shadow:var(--shadow);
+  }
+  .stats-panel h3{ margin:0 0 14px; font-size:14px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); }
+  .stats-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:14px; }
+  .stat-box{
+    background:var(--bg-soft); border:1px solid var(--border); border-radius:10px;
+    padding:14px; text-align:center; transition: transform .2s ease;
+  }
+  .stat-box:hover{ transform:translateY(-3px); }
+  .stat-box .num{ font-size:22px; font-weight:800; font-family:var(--font-mono); }
+  .stat-box .lbl{ font-size:11.5px; color:var(--muted); margin-top:4px; text-transform:uppercase; letter-spacing:.5px; }
+
+  /* ============================================================
+     TIME GREETING — fixed pill in top-right
+     ============================================================ */
+  /* ============================================================
+     TOP RIGHT CONTROLS & TIME GREETING
+     ============================================================ */
+  .top-right-controls {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: greetIn 0.6s ease;
+  }
+  .theme-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: var(--card);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.22s ease;
+    user-select: none;
+    outline: none;
+  }
+  .theme-toggle-btn:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary);
+  }
+  .time-greeting {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    border-radius: 999px;
+    background: var(--card);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .time-greeting .greet-name { color: var(--primary); font-weight: 700; }
+  @keyframes greetIn {
+    from { opacity:0; transform:translateY(-14px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  /* ============================================================
+     AI SOLUTION MODAL OVERLAY
+     ============================================================ */
+  .lb-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(7, 10, 18, 0.78);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+  }
+  .lb-modal-overlay.show {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+  .lb-modal {
+    background: var(--card, #0f172a);
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.15));
+    border-radius: var(--radius, 20px);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 0 35px rgba(99, 102, 241, 0.22);
+    width: 100%;
+    max-width: 680px;
+    padding: 24px;
+    position: relative;
+    transform: translateY(16px) scale(0.96);
+    transition: transform 0.25s ease;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .lb-modal-overlay.show .lb-modal {
+    transform: translateY(0) scale(1);
+  }
+  .lb-close {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.15));
+    color: var(--text, #f8fafc);
+    border-radius: 10px;
+    width: 34px;
+    height: 34px;
+    font-size: 20px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .lb-close:hover {
+    background: var(--error, #f43f5e);
+    border-color: var(--error, #f43f5e);
+    color: #fff;
+  }
+
+  /* Light Theme Overrides */
+  [data-theme="light"] {
+    --bg:            #eef2f8;
+    --bg-soft:       #e4eaf3;
+    --card:          rgba(255, 255, 255, 0.88);
+    --card-hover:    #f8fafc;
+    --border:        #dbe3ee;
+    --primary:       #2563eb;
+    --primary-dark:  #1d4ed8;
+    --muted:         #64748b;
+    --text:          #0f172a;
+    --shadow:        0 10px 26px rgba(15,23,42,.08);
+    --answer-filled-bg: #e7f0ff;
+    --header-grad-a: #0f172a;
+    --header-grad-b: #2563eb;
+    --radial-1:      rgba(37,99,235,.07);
+    --radial-2:      rgba(22,163,74,.06);
+
+    --blob-indigo:  rgba(99,102,241,.18);
+    --blob-purple:  rgba(168,85,247,.14);
+    --blob-emerald: rgba(16,185,129,.12);
+    --blob-blue:    rgba(59,130,246,.18);
+    --blob-opacity: .85;
+  }
+
+  [data-theme="light"] body {
+    color: #0f172a;
+  }
+
+  [data-theme="light"] .dashboard-panel,
+  [data-theme="light"] .section-block,
+  [data-theme="light"] .problem-card,
+  [data-theme="light"] .setting-card,
+  [data-theme="light"] .stats-panel,
+  [data-theme="light"] .lb-modal {
+    background: rgba(255, 255, 255, 0.88);
+    border-color: rgba(219, 227, 238, 0.85);
+    color: #0f172a;
+    box-shadow: 0 12px 32px rgba(37,99,235,0.10);
+  }
+
+  [data-theme="light"] .dash-card {
+    background: rgba(255, 255, 255, 0.75);
+    border-color: rgba(219, 227, 238, 0.9);
+  }
+
+  [data-theme="light"] .time-greeting,
+  [data-theme="light"] .theme-toggle-btn {
+    background: rgba(255, 255, 255, 0.75);
+    border-color: rgba(255, 255, 255, 0.9);
+    color: #0f172a;
+    box-shadow: 0 4px 20px rgba(37,99,235,0.12);
+  }
+
+  [data-theme="light"] .time-greeting .greet-name {
+    color: #2563eb;
+  }
+
+  [data-theme="light"] .lb-overlay {
+    background: rgba(15, 23, 42, 0.50);
+  }
+
+  [data-theme="light"] select,
+  [data-theme="light"] input[type="text"],
+  [data-theme="light"] input[type="number"] {
+    background: #ffffff;
+    color: #0f172a;
+    border-color: #cbd5e1;
+  }
+
+  [data-theme="light"] .bit-box {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    color: #0f172a;
+  }
+
+  [data-theme="light"] .bit-box.one {
+    background: #e0e7ff;
+    border-color: #a5b4fc;
+    color: #3730a3;
+  }
+
+  [data-theme="light"] .answer-box.correct,
+  [data-theme="light"] .bit-box.correct,
+  [data-theme="light"] .single-answer-input.correct {
+    background: #dcfce7 !important;
+    border-color: #16a34a !important;
+    color: #15803d !important;
+    font-weight: 800 !important;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.28) !important;
+  }
+
+  [data-theme="light"] .answer-box.wrong,
+  [data-theme="light"] .bit-box.wrong,
+  [data-theme="light"] .bit-box.incorrect,
+  [data-theme="light"] .single-answer-input.wrong {
+    background: #fee2e2 !important;
+    border-color: #dc2626 !important;
+    color: #b91c1c !important;
+    font-weight: 800 !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.28) !important;
+  }
+
+  /* ============================================================
+     DASHBOARD PANEL
+     ============================================================ */
+  .dashboard-panel {
+    width: 100%; max-width: 900px;
+    margin-bottom: 22px;
+    background: rgba(15, 23, 42, 0.82);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    box-shadow: var(--shadow);
+    animation: slideUp .45s ease .02s backwards;
+  }
+  .dashboard-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .dashboard-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 14px;
+  }
+  .dash-card {
+    background: rgba(30, 41, 59, 0.60);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    padding: 16px 14px;
+    text-align: center;
+    transition: transform .2s ease, box-shadow .2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .dash-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 14px 14px 0 0;
+  }
+  .dash-card.pts-card::before  { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+  .dash-card.acc-card::before  { background: linear-gradient(90deg, #10b981, #059669); }
+  .dash-card.sol-card::before  { background: linear-gradient(90deg, #6366f1, #4f46e5); }
+  .dash-card.str-card::before  { background: linear-gradient(90deg, #f97316, #ea580c); }
+  .dash-card.err-card::before  { background: linear-gradient(90deg, #f43f5e, #e11d48); }
+
+  .dash-card:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0,0,0,0.5); }
+  .dash-card .dc-icon { font-size: 22px; margin-bottom: 6px; display: block; }
+  .dash-card .dc-val {
+    font-size: 24px;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    color: var(--text);
+    line-height: 1.1;
+  }
+  .dash-card .dc-lbl {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-top: 4px;
+  }
+
+  /* NSP Coin icon for points card */
+  .nsp-coin {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    margin-bottom: 6px;
+    filter: drop-shadow(0 4px 12px rgba(245,158,11,0.55));
+  }
+
+  /* Leaderboard button */
+  .lb-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: all .2s ease;
+  }
+  .lb-btn.unlocked {
+    background: linear-gradient(135deg, var(--primary), var(--purple));
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(99,102,241,0.45);
+  }
+  .lb-btn.unlocked:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(99,102,241,0.55); }
+  .lb-btn.locked {
+    background: var(--bg-soft);
+    color: var(--muted);
+    border: 1.5px solid var(--border);
+    cursor: not-allowed;
+  }
+  .lb-progress {
+    margin-top: 10px;
+    font-size: 11.5px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .lb-progress-bar {
+    flex: 1;
+    height: 6px;
+    background: var(--bg-soft);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .lb-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--purple));
+    border-radius: 999px;
+    transition: width .5s ease;
+  }
+
+  /* ============================================================
+     LEADERBOARD MODAL
+     ============================================================ */
+  .lb-overlay {
+    position: fixed; inset: 0;
+    z-index: 9200;
+    background: rgba(3, 7, 18, 0.82);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .3s ease;
+  }
+  .lb-overlay.show { opacity: 1; pointer-events: auto; }
+  .lb-modal {
+    background: rgba(15, 23, 42, 0.94);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1.5px solid rgba(255,255,255,0.15);
+    border-radius: 28px;
+    padding: 30px;
+    width: 100%;
+    max-width: 520px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.8), 0 0 40px rgba(99, 102, 241, 0.2);
+    transform: translateY(24px) scale(.97);
+    transition: transform .35s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .lb-overlay.show .lb-modal { transform: translateY(0) scale(1); }
+  .lb-modal h2 {
+    font-size: 22px; font-weight: 800; color: var(--text);
+    margin: 0 0 6px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .lb-modal .lb-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+  .lb-close {
+    margin-left: auto;
+    flex-shrink: 0;
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--muted);
+    transition: all .2s ease;
+    font-weight: 600;
+  }
+  .lb-close:hover { background: var(--error); color: #fff; border-color: var(--error); }
+  .lb-table { width: 100%; border-collapse: collapse; }
+  .lb-table th {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--muted); padding: 8px 10px; text-align: left;
+    border-bottom: 2px solid var(--border);
+  }
+  .lb-table td {
+    padding: 12px 10px;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+  .lb-table tr:last-child td { border-bottom: none; }
+  .lb-table tr:hover td { background: var(--bg-soft); }
+  .lb-rank { font-weight: 800; font-family: var(--font-mono); }
+  .lb-rank.gold   { color: #d97706; }
+  .lb-rank.silver { color: #64748b; }
+  .lb-rank.bronze { color: #92400e; }
+  .lb-pts-val { font-family: var(--font-mono); font-weight: 800; color: var(--primary); }
+  .lb-me td { background: rgba(99,102,241,0.07); font-weight: 600; }
+  .lb-loading { text-align: center; color: var(--muted); padding: 32px 0; font-size: 14px; }
+  .lb-empty   { text-align: center; color: var(--muted); padding: 32px 0; font-size: 14px; }
+
+  /* responsive mobile overhaul */
+  @media (max-width:640px){
+    :root{
+      --box-size: clamp(32px, 7.5vw, 42px);
+      --box-gap: 3px;
+      --label-width: 26px;
+    }
+
+    #home-screen { padding: 14px 12px 36px; }
+    #practice-screen { padding: 12px 10px 40px; }
+
+    .top-right-controls {
+      position: relative;
+      top: auto;
+      right: auto;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 16px 0;
+      padding: 0;
+    }
+    .theme-toggle-btn, .time-greeting {
+      font-size: 12px;
+      padding: 6px 14px;
+      border-radius: 999px;
+    }
+
+    .home-header { margin-bottom: 20px; text-align: center; }
+    .home-header h1 { font-size: 22px; margin-bottom: 6px; letter-spacing: -0.3px; }
+    .home-header p { font-size: 13px; line-height: 1.4; color: var(--muted); margin-bottom: 12px; }
+    .home-header .nav-switch-link {
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 999px;
+    }
+
+    /* Dashboard Panel on Mobile */
+    .dashboard-panel { padding: 16px 14px; border-radius: 20px; margin-bottom: 20px; }
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      gap: 8px;
+    }
+    .dashboard-title { font-size: 16px; font-weight: 800; }
+    .dashboard-header .lb-btn {
+      padding: 6px 12px;
+      font-size: 11.5px;
+      border-radius: 10px;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    /* Span Digital Points hero card full width on mobile */
+    .dash-card.pts-card {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(99,102,241,0.12));
+      border: 1px solid rgba(245,158,11,0.3);
+      border-radius: 16px;
+    }
+    .dash-card.pts-card .nsp-coin { width: 38px; height: 38px; }
+    .dash-card.pts-card .dc-val { font-size: 26px; }
+    .dash-card.pts-card .dc-lbl { font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--warning); }
+
+    .dash-card { padding: 12px 10px; border-radius: 14px; text-align: center; }
+    .dash-card .dc-val { font-size: 19px; }
+    .dash-card .dc-lbl { font-size: 10.5px; }
+
+    /* Mode Blocks on Mobile */
+    .section-block { margin-bottom: 18px; padding: 14px; border-radius: 20px; }
+    .section-heading h2 { font-size: 16px; }
+    .mode-grid { grid-template-columns: 1fr; gap: 10px; }
+    .mode-card { padding: 14px 16px; border-radius: 14px; display: flex; align-items: center; gap: 12px; text-align: left; }
+    .mode-card .icon { font-size: 22px; margin-bottom: 0; }
+    .mode-card h3 { font-size: 15px; margin: 0 0 2px 0; }
+    .mode-card p { font-size: 12px; margin: 0; }
+
+    /* Settings Panel on Mobile — Smooth, Uncluttered */
+    .settings-panel { padding: 18px 14px; border-radius: 20px; margin-bottom: 20px; }
+    .settings-panel h3 { font-size: 15px; font-weight: 800; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.8px; }
+
+    .setting-row {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-bottom: 14px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .setting-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+    .setting-row.toggle-row {
+      flex-direction: row !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      gap: 12px !important;
+    }
+    .setting-row.toggle-row .setting-label { flex: 1; font-size: 13.5px; font-weight: 600; }
+    .setting-row.toggle-row .setting-label small { font-size: 11px; margin-top: 2px; }
+
+    .setting-label { font-size: 14px; font-weight: 700; }
+    .pill-group {
+      display: grid !important;
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 8px !important;
+      width: 100%;
+    }
+    .pill {
+      width: 100%;
+      justify-content: center;
+      padding: 10px 8px;
+      font-size: 13px;
+      border-radius: 12px;
+    }
+
+    .practice-header { flex-direction: column; align-items: stretch; gap: 10px; }
+    .practice-title { font-size: 17px; }
+
+    .problem-card { padding: 16px 10px; border-radius: 18px; }
+    .bit-box { font-size: calc(var(--box-size) * 0.44); }
+
+    .controls { gap: 8px; }
+    .controls .btn { flex: 1 1 calc(50% - 6px); padding: 11px 12px; font-size: 13px; justify-content: center; border-radius: 12px; }
+
+    .stats-panel { padding: 16px 12px; border-radius: 18px; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+
+    .lb-modal { padding: 20px 14px; border-radius: 20px; max-width: 94vw; max-height: 84vh; }
+    .lb-modal h2 { font-size: 18px; }
+    .lb-modal .lb-sub { font-size: 12px; margin-bottom: 14px; }
+    .lb-table th { padding: 6px 6px; font-size: 10px; }
+    .lb-table td { padding: 10px 6px; font-size: 12.5px; }
+  }
+
+  .visually-hidden{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+</style>
+</head>
+<body>
+
+<!-- LEADERBOARD MODAL -->
+<div class="lb-overlay" id="lbOverlay">
+  <div class="lb-modal">
+    <h2>
+      🏆 Leaderboard
+      <button class="lb-close" id="lbClose">✕ Close</button>
+    </h2>
+    <p class="lb-sub">Top 10 players by Digital Points</p>
+    <div id="lbBody"><p class="lb-loading">Loading rankings…</p></div>
+    <div style="margin-top:18px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.12); text-align:center;">
+      <a href="analytics.html" class="nav-switch-link" style="display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:10px 20px; border-radius:10px; background:linear-gradient(135deg,#6366f1,#4f46e5); color:#ffffff; font-weight:700; font-size:13.5px; text-decoration:none; box-shadow:0 4px 14px rgba(99,102,241,0.35); border:none;">
+        📊 Show Full Analytics
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY MODAL -->
+<div class="lb-overlay" id="historyOverlay">
+  <div class="lb-modal" style="max-width:640px;">
+    <h2>
+      📜 Recent Solved History
+      <button class="lb-close" onclick="closeHistoryModal()">✕ Close</button>
+    </h2>
+    <p class="lb-sub">Your last 10 questions solved across arithmetic &amp; conversions</p>
+    <div id="historyBody"><p class="lb-loading">Loading history…</p></div>
+  </div>
+</div>
+
+<div id="app">
+
+  <!-- ============================================================
+       HOME SCREEN
+       ============================================================ -->
+  <section id="home-screen" class="screen active">
+
+    <!-- TOP-RIGHT CONTROLS (Theme Toggle + Greeting) — HOME SCREEN ONLY -->
+    <div class="top-right-controls">
+      <button class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()" aria-label="Toggle Theme">
+        <span class="theme-toggle-icon" id="themeToggleIcon">🌙</span>
+        <span class="theme-toggle-label" id="themeToggleText">Dark</span>
+      </button>
+      <div class="time-greeting" id="timeGreeting">
+        <span id="greetEmoji">👋</span>
+        <span id="greetText">Welcome!</span>
+      </div>
+    </div>
+
+    <div class="home-header">
+      <h1>Number Base Arithmetic Trainer</h1>
+      <p>Practice binary, octal &amp; hexadecimal arithmetic — one digit at a time.</p>
+      <div style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap; margin-top:12px;">
+        <a class="nav-switch-link" href="number-system-quiz.html">🔄 Switch to Conversion Quiz</a>
+        <a class="nav-switch-link" href="analytics.html">📊 Analytics</a>
+        <a class="nav-switch-link" href="about.html">📖 About &amp; Docs</a>
+        <button class="nav-switch-link" style="background:linear-gradient(120deg,#ef4444,#dc2626); border:none; cursor:pointer;" onclick="logoutUser()">🔒 Logout</button>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         PROGRESS DASHBOARD
+         ============================================================ -->
+    <div class="dashboard-panel" id="dashboardPanel">
+      <div class="dashboard-header">
+        <div class="dashboard-title">
+          <!-- NSP Coin SVG icon -->
+          <svg width="28" height="28" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="18" cy="18" r="17" fill="url(#coinGrad)" stroke="rgba(251,191,36,0.6)" stroke-width="1.5"/>
+            <defs>
+              <linearGradient id="coinGrad" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#fbbf24"/>
+                <stop offset="60%" stop-color="#f59e0b"/>
+                <stop offset="100%" stop-color="#d97706"/>
+              </linearGradient>
+            </defs>
+            <!-- Inner ring -->
+            <circle cx="18" cy="18" r="13" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1"/>
+            <!-- NSP text -->
+            <text x="18" y="23" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="10" font-weight="900" fill="#fff" letter-spacing="-0.5">NSP</text>
+          </svg>
+          My Progress
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button class="lb-btn unlocked" style="background:linear-gradient(135deg,#0284c7,#0369a1); color:#fff; box-shadow:0 6px 18px rgba(2,132,199,0.35);" onclick="openHistoryModal()">
+            📜 History
+          </button>
+          <button class="lb-btn locked" id="lbBtn" title="Complete 10 questions to unlock the Leaderboard" onclick="openLeaderboard()">
+            🔒 Leaderboard
+          </button>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <!-- Digital Points -->
+        <div class="dash-card pts-card">
+          <div class="nsp-coin" title="Digital Points">
+            <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:36px; height:36px;">
+              <circle cx="18" cy="18" r="16" fill="url(#goldGradDash)" stroke="#fef08a" stroke-width="1.5"/>
+              <circle cx="18" cy="18" r="12" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1" stroke-dasharray="2 2"/>
+              <path d="M18 9.5l2.6 5.3 5.9.8-4.3 4.2 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.2 5.9-.8L18 9.5z" fill="#ffffff"/>
+              <defs>
+                <linearGradient id="goldGradDash" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#fef08a"/>
+                  <stop offset="50%" stop-color="#f59e0b"/>
+                  <stop offset="100%" stop-color="#d97706"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <div class="dc-val" id="dashPoints">0</div>
+          <div class="dc-lbl">Digital Points</div>
+        </div>
+        <!-- Accuracy -->
+        <div class="dash-card acc-card">
+          <div class="dc-icon">🎯</div>
+          <div class="dc-val" id="dashAccuracy">0%</div>
+          <div class="dc-lbl">Accuracy</div>
+        </div>
+        <!-- Total Solved -->
+        <div class="dash-card sol-card">
+          <div class="dc-icon">✅</div>
+          <div class="dc-val" id="dashSolved">0</div>
+          <div class="dc-lbl">Questions Solved</div>
+        </div>
+        <!-- Max Streak -->
+        <div class="dash-card str-card">
+          <div class="dc-icon">🔥</div>
+          <div class="dc-val" id="dashStreak">0</div>
+          <div class="dc-lbl">Best Streak</div>
+        </div>
+        <!-- Errors -->
+        <div class="dash-card err-card">
+          <div class="dc-icon">❌</div>
+          <div class="dc-val" id="dashErrors">0</div>
+          <div class="dc-lbl">Errors</div>
+        </div>
+      </div>
+
+      <!-- Leaderboard unlock progress -->
+      <div class="lb-progress" id="lbProgress">
+        <span id="lbProgressTxt">Solve 10 questions to unlock the Leaderboard</span>
+        <div class="lb-progress-bar"><div class="lb-progress-fill" id="lbProgressFill" style="width:0%"></div></div>
+        <span id="lbProgressCount">0/10</span>
+      </div>
+    </div>
+
+    <!-- BINARY -->
+    <div class="section-block">
+      <div class="section-heading"><h2>Binary</h2><span class="section-badge">BASE 2</span></div>
+      <div class="mode-grid">
+        <div class="mode-card op-add" data-base="2" data-op="add" role="button" tabindex="0">
+          <span class="icon">➕</span><h3>Addition</h3><p>Add two binary numbers with carry tracking.</p>
+        </div>
+        <div class="mode-card op-sub" data-base="2" data-op="sub" role="button" tabindex="0">
+          <span class="icon">➖</span><h3>Subtraction</h3><p>Subtract binary numbers, including borrow chains.</p>
+        </div>
+        <div class="mode-card op-mul" data-base="2" data-op="mul" role="button" tabindex="0">
+          <span class="icon">✖️</span><h3>Multiplication</h3><p>Multiply two binary numbers to their full product.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- OCTAL -->
+    <div class="section-block">
+      <div class="section-heading"><h2>Octal</h2><span class="section-badge">BASE 8</span></div>
+      <div class="mode-grid">
+        <div class="mode-card op-add" data-base="8" data-op="add" role="button" tabindex="0">
+          <span class="icon">➕</span><h3>Addition</h3><p>Add two octal numbers with carry tracking.</p>
+        </div>
+        <div class="mode-card op-sub" data-base="8" data-op="sub" role="button" tabindex="0">
+          <span class="icon">➖</span><h3>Subtraction</h3><p>Subtract octal numbers, including borrow chains.</p>
+        </div>
+        <div class="mode-card op-mul" data-base="8" data-op="mul" role="button" tabindex="0">
+          <span class="icon">✖️</span><h3>Multiplication</h3><p>Multiply two octal numbers to their full product.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- HEXADECIMAL -->
+    <div class="section-block">
+      <div class="section-heading"><h2>Hexadecimal</h2><span class="section-badge">BASE 16</span></div>
+      <div class="mode-grid">
+        <div class="mode-card op-add" data-base="16" data-op="add" role="button" tabindex="0">
+          <span class="icon">➕</span><h3>Addition</h3><p>Add two hexadecimal numbers with carry tracking.</p>
+        </div>
+        <div class="mode-card op-sub" data-base="16" data-op="sub" role="button" tabindex="0">
+          <span class="icon">➖</span><h3>Subtraction</h3><p>Subtract hexadecimal numbers, including borrow chains.</p>
+        </div>
+        <div class="mode-card op-mul" data-base="16" data-op="mul" role="button" tabindex="0">
+          <span class="icon">✖️</span><h3>Multiplication</h3><p>Multiply two hexadecimal numbers to their full product.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-panel">
+      <h3>Settings</h3>
+
+      <div class="setting-row">
+        <div class="setting-label">Difficulty<small>Controls how many digits each number has</small></div>
+        <div class="pill-group" id="difficultyGroup">
+          <button class="pill active" data-level="easy"><span>Easy</span><span class="pill-count"></span></button>
+          <button class="pill" data-level="medium"><span>Medium</span><span class="pill-count"></span></button>
+          <button class="pill" data-level="hard"><span>Hard</span><span class="pill-count"></span></button>
+          <button class="pill" data-level="extreme"><span>Extreme</span><span class="pill-count"></span></button>
+        </div>
+        <div class="setting-hint">Counts shown are for Binary — Octal &amp; Hex use fewer digits automatically, scaled to match.</div>
+      </div>
+
+      <div class="setting-row toggle-row">
+        <div class="setting-label">Allow Negative Answers<small>Subtraction only — shows a sign box instead of forcing a ≥ b</small></div>
+        <label class="switch">
+          <input type="checkbox" id="negativeToggle">
+          <span class="switch-track"></span>
+        </label>
+      </div>
+
+      <div class="setting-row toggle-row">
+        <div class="setting-label">Include Fractional Points (Points)<small>Generates random fractional parts (1 to 4 digits after radix point)</small></div>
+        <label class="switch">
+          <input type="checkbox" id="pointsToggle">
+          <span class="switch-track"></span>
+        </label>
+      </div>
+
+      <div class="setting-row toggle-row">
+        <div class="setting-label">Single Input Box (Hide Boxes)<small>Hide individual digit boxes and type complete answer in a single box</small></div>
+        <label class="switch">
+          <input type="checkbox" id="hideBoxesToggle">
+          <span class="switch-track"></span>
+        </label>
+      </div>
+
+      <div class="setting-row toggle-row">
+        <div class="setting-label">Sound Effects<small>Click, success and error tones</small></div>
+        <label class="switch">
+          <input type="checkbox" id="soundToggle" checked>
+          <span class="switch-track"></span>
+        </label>
+      </div>
+    </div>
+
+    <footer class="home-footer">
+      Crafted with Passion &amp; Precision by <strong>Sriyans &amp; Devashish</strong> · <a href="about.html" style="color:var(--text); text-decoration:underline;">📖 About &amp; Documentation</a> · <a href="mailto:sriyansraj02@gmail.com">sriyansraj02@gmail.com</a> · &copy; <span id="creditYear"></span>
+    </footer>
+  </section>
+
+  <!-- ============================================================
+       PRACTICE SCREEN
+       ============================================================ -->
+  <section id="practice-screen" class="screen">
+
+    <div class="practice-header">
+      <div style="display:flex; gap:8px;">
+        <button class="back-btn" id="backBtn">← Home</button>
+        <button class="back-btn" onclick="logoutUser()" style="color:#ef4444; border-color:#fecaca;">🔒 Logout</button>
+      </div>
+      <div class="practice-title" id="modeLabel">Binary Addition</div>
+      <div class="live-bar">
+        <div class="stat-chip">📏 <b id="sizeDisplay">8</b></div>
+        <div class="stat-chip">⏱ <b id="timerDisplay">0.0s</b></div>
+        <div class="stat-chip">🔥 <b id="streakDisplay">0</b></div>
+      </div>
+    </div>
+
+    <div class="problem-card">
+      <div class="problem-scroll">
+        <div id="carryRowWrap" class="indicator-row" style="display:none;"></div>
+        <div class="bit-row" id="operandARow"></div>
+        <div class="bit-row" id="operandBRow"></div>
+        <div class="divider-line"></div>
+        <div id="borrowRowWrap" class="indicator-row" style="display:none;"></div>
+        <div class="bit-row" id="answerRow"></div>
+        <div class="bit-row" id="solutionRowWrap" style="display:none; margin-top:8px;"></div>
+      </div>
+
+      <div class="score-display" id="scoreDisplay"></div>
+    </div>
+
+    <div class="controls">
+      <button class="btn primary" id="submitBtn">✔ Submit</button>
+      <button class="btn ghost" id="resetBtn">↺ Reset</button>
+      <button class="btn ghost" id="prevBtn">⟵ Previous</button>
+      <button class="btn ghost" id="nextBtn">Next ⟶</button>
+      <button class="btn success" id="randomBtn">🎲 Random Question</button>
+      <button class="btn ghost ai-sol-btn" id="aiSolBtn" style="display:none; background: linear-gradient(135deg, rgba(99,102,241,0.18), rgba(168,85,247,0.18)); border:1px solid rgba(99,102,241,0.4); color:var(--primary); font-weight:700;">✨ AI Solution</button>
+    </div>
+
+    <div class="stats-panel">
+      <h3>Session Statistics</h3>
+      <div class="stats-grid">
+        <div class="stat-box"><div class="num" id="statSolved">0</div><div class="lbl">Questions Solved</div></div>
+        <div class="stat-box"><div class="num" id="statCorrect">0</div><div class="lbl">Correct Answers</div></div>
+        <div class="stat-box"><div class="num" id="statAccuracy">0%</div><div class="lbl">Accuracy</div></div>
+        <div class="stat-box"><div class="num" id="statStreak">0</div><div class="lbl">Current Streak</div></div>
+        <div class="stat-box"><div class="num" id="statBestStreak">0</div><div class="lbl">Best Streak</div></div>
+        <div class="stat-box"><div class="num" id="statAvgTime">0.0s</div><div class="lbl">Average Time</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       AI SOLUTION MODAL
+       ============================================================ -->
+  <div class="lb-modal-overlay" id="aiModalOverlay">
+    <div class="lb-modal" style="max-width: 680px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h2 style="margin:0; font-size:20px; color:var(--primary); display:flex; align-items:center; gap:8px;">
+          ✨ Gemini AI Step-by-Step Solution
+        </h2>
+        <button class="lb-close" onclick="closeAiModal()">&times;</button>
+      </div>
+      <div id="aiModalBody" style="font-size:14px; line-height:1.6; color:var(--text); max-height:70vh; overflow-y:auto; padding-right:6px;">
+        <!-- Filled dynamically -->
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* =====================================================================
+   NUMBER BASE ARITHMETIC TRAINER — APPLICATION SCRIPT
+   Supports Binary, Octal and Hexadecimal — Addition, Subtraction
+   and Multiplication. Light theme only.
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   0. SHORTHANDS, CONSTANTS & GLOBAL STATE
+   --------------------------------------------------------------------- */
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+const DIGIT_CHARS = '0123456789ABCDEF';
+
+const BASE_NAMES = { 2: 'Binary', 8: 'Octal', 16: 'Hexadecimal' };
+const OP_NAMES   = { add: 'Addition', sub: 'Subtraction', mul: 'Multiplication' };
+const OP_SYMBOLS = { add: '+', sub: '\u2212', mul: '\u00d7' };
+
+// Digit-count per difficulty level, tuned per base so problems stay
+// a sensible size (bits for binary, digits for octal/hex).
+const DIFFICULTY = {
+  2:  { easy: 8, medium: 16, hard: 32, extreme: 64 },
+  8:  { easy: 4, medium: 8,  hard: 12, extreme: 16 },
+  16: { easy: 2, medium: 4,  hard: 8,  extreme: 12 },
+};
+
+const state = {
+  base: 2,                  // 2 | 8 | 16
+  op: 'add',                // 'add' | 'sub' | 'mul'
+  level: 'easy',            // 'easy' | 'medium' | 'hard' | 'extreme'
+  allowNegative: false,
+  enablePoints: localStorage.getItem('enablePoints') === 'true',
+  soundOn: true,
+  hideBoxes: localStorage.getItem('hideBoxes') === 'true',
+
+  history: [],               // list of generated question objects
+  historyIndex: -1,
+  // light theme only — no dark/light toggle
+
+  timerHandle: null,
+  timerStart: 0,
+  elapsed: 0,
+  timerRunning: false,
+
+  session: { solved: 0, correct: 0, streak: 0, bestStreak: 0, totalTime: 0 },
+  focusedBoxIndex: 0,
+};
+
+/* ---------------------------------------------------------------------
+   1. SOUND EFFECTS (Web Audio API — no external files)
+   --------------------------------------------------------------------- */
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new AC();
+  }
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+  return audioCtx;
+}
+function playTone(freq, duration, type = 'sine', gainPeak = 0.18) {
+  if (!state.soundOn) return;
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(gainPeak, ctx.currentTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + duration + 0.02);
+  } catch (e) { /* audio unavailable — fail silently */ }
+}
+const playClickSound   = () => playTone(520, 0.06, 'square', 0.1);
+const playSuccessSound = () => { playTone(660, 0.12, 'sine'); setTimeout(() => playTone(880, 0.18, 'sine'), 90); };
+const playErrorSound   = () => { playTone(180, 0.22, 'sawtooth', 0.14); };
+
+// Global listener for button click audio feedback across all UI controls
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('button, .btn, .chip, .mode-btn, .nav-switch-link, .lb-btn, .theme-toggle-btn, .lb-close, .switch, input[type="button"], input[type="submit"], input[type="checkbox"], .tab, .opt-chip, .back-btn');
+  if (btn) {
+    playClickSound();
+  }
+}, true);
+
+/* ---------------------------------------------------------------------
+   2. GENERIC BASE-N MATH HELPERS
+   (bit-by-bit / digit-by-digit — works for base 2, 8 or 16 and
+   produces the carry / borrow chains used for visualization)
+   --------------------------------------------------------------------- */
+const digitValue = ch => DIGIT_CHARS.indexOf(ch.toUpperCase());
+const digitChar  = val => DIGIT_CHARS[val];
+
+function randomDigits(base, length) {
+  let out = '';
+  for (let i = 0; i < length; i++) out += digitChar(Math.floor(Math.random() * base));
+  return out;
+}
+
+// Adds two equal-length digit strings in the given base.
+// Returns the sum (length+1) and carryIn[i] = carry entering column i.
+function addBaseNumbers(aStr, bStr, base) {
+  const n = aStr.length;
+  const sumDigits = new Array(n + 1).fill('0');
+  const carryIn = new Array(n).fill(0);
+  let carry = 0;
+  for (let i = n - 1; i >= 0; i--) {
+    carryIn[i] = carry;
+    const total = digitValue(aStr[i]) + digitValue(bStr[i]) + carry;
+    sumDigits[i + 1] = digitChar(total % base);
+    carry = total >= base ? 1 : 0;
+  }
+  sumDigits[0] = digitChar(carry);
+  return { sum: sumDigits.join(''), carryIn };
+}
+
+// Subtracts subtrahend from minuend (minuend >= subtrahend), in the
+// given base. Returns the difference and borrowOut[i] = 1 if column i
+// borrowed from the column to its left.
+function subBaseNumbers(minuend, subtrahend, base) {
+  const n = minuend.length;
+  const diffDigits = new Array(n).fill('0');
+  const borrowOut = new Array(n).fill(0);
+  let borrow = 0;
+  for (let i = n - 1; i >= 0; i--) {
+    let a = digitValue(minuend[i]) - borrow;
+    const b = digitValue(subtrahend[i]);
+    if (a < b) { a += base; borrow = 1; } else { borrow = 0; }
+    diffDigits[i] = digitChar(a - b);
+    borrowOut[i] = borrow;
+  }
+  return { diff: diffDigits.join(''), borrowOut };
+}
+
+/* ---------------------------------------------------------------------
+   3. QUESTION GENERATION
+   --------------------------------------------------------------------- */
+function generateAdditionQuestion(size, base) {
+  const aInt = randomDigits(base, size);
+  const bInt = randomDigits(base, size);
+  const defaultChar = base === 2 ? '0' : '?';
+
+  if (!state.enablePoints) {
+    const { sum, carryIn } = addBaseNumbers(aInt, bInt, base);
+    return {
+      op: 'add', base, size, a: aInt, b: bInt,
+      answer: sum, carryIn,
+      isNegative: false, hasSignBox: false,
+      hasPoints: false,
+      userAnswer: Array(size + 1).fill(defaultChar),
+      scored: false, timeTaken: null,
+    };
+  }
+
+  // Points enabled: random 1 to 4 digits for fractional part
+  const lenA = Math.floor(Math.random() * 4) + 1;
+  const lenB = Math.floor(Math.random() * 4) + 1;
+  const aFracRaw = randomDigits(base, lenA);
+  const bFracRaw = randomDigits(base, lenB);
+  const maxFracLen = Math.max(lenA, lenB);
+
+  const aFracPad = aFracRaw.padEnd(maxFracLen, '0');
+  const bFracPad = bFracRaw.padEnd(maxFracLen, '0');
+
+  const fullA = aInt + aFracPad;
+  const fullB = bInt + bFracPad;
+
+  const { sum, carryIn } = addBaseNumbers(fullA, fullB, base);
+
+  const ansInt = sum.slice(0, sum.length - maxFracLen);
+  const ansFrac = sum.slice(sum.length - maxFracLen);
+
+  const aStr = aInt + '.' + aFracPad;
+  const bStr = bInt + '.' + bFracPad;
+  const answerStr = ansInt + '.' + ansFrac;
+
+  const totalUserLen = ansInt.length + 1 + ansFrac.length;
+  const initialUserAns = Array(totalUserLen).fill(defaultChar);
+  initialUserAns[ansInt.length] = '.';
+
+  return {
+    op: 'add', base, size,
+    a: aStr, b: bStr,
+    aInt, aFrac: aFracPad, bInt, bFrac: bFracPad,
+    answerInt: ansInt, answerFrac: ansFrac,
+    answer: answerStr, carryIn,
+    isNegative: false, hasSignBox: false,
+    hasPoints: true, maxFracLen,
+    userAnswer: initialUserAns,
+    scored: false, timeTaken: null,
+  };
+}
+
+function generateSubtractionQuestion(size, base, allowNegative) {
+  let aInt = randomDigits(base, size);
+  let bInt = randomDigits(base, size);
+  const defaultChar = base === 2 ? '0' : '?';
+
+  if (!state.enablePoints) {
+    let isNegative = false;
+    if (!allowNegative) {
+      if (aInt < bInt) { const t = aInt; aInt = bInt; bInt = t; }
+    } else if (aInt < bInt) {
+      isNegative = true;
+    }
+
+    const minuend = isNegative ? bInt : aInt;
+    const subtrahend = isNegative ? aInt : bInt;
+    const { diff, borrowOut } = subBaseNumbers(minuend, subtrahend, base);
+    const hasSignBox = allowNegative;
+
+    const initialUserAns = Array(size + (hasSignBox ? 1 : 0)).fill(defaultChar);
+    if (hasSignBox) initialUserAns[0] = '+';
+
+    return {
+      op: 'sub', base, size, a: aInt, b: bInt,
+      answer: diff, borrowOut,
+      isNegative, hasSignBox,
+      hasPoints: false,
+      userAnswer: initialUserAns,
+      scored: false, timeTaken: null,
+    };
+  }
+
+  // Points enabled
+  const lenA = Math.floor(Math.random() * 4) + 1;
+  const lenB = Math.floor(Math.random() * 4) + 1;
+  let aFracRaw = randomDigits(base, lenA);
+  let bFracRaw = randomDigits(base, lenB);
+  let maxFracLen = Math.max(lenA, lenB);
+
+  let aFracPad = aFracRaw.padEnd(maxFracLen, '0');
+  let bFracPad = bFracRaw.padEnd(maxFracLen, '0');
+
+  let fullA = aInt + aFracPad;
+  let fullB = bInt + bFracPad;
+  let isNegative = false;
+
+  const valA = bigIntFromBaseStr(fullA, base);
+  const valB = bigIntFromBaseStr(fullB, base);
+
+  if (!allowNegative) {
+    if (valA < valB) {
+      let tInt = aInt; aInt = bInt; bInt = tInt;
+      let tFracPad = aFracPad; aFracPad = bFracPad; bFracPad = tFracPad;
+      let tFull = fullA; fullA = fullB; fullB = tFull;
+    }
+  } else if (valA < valB) {
+    isNegative = true;
+  }
+
+  const minuend = isNegative ? fullB : fullA;
+  const subtrahend = isNegative ? fullA : fullB;
+  const { diff, borrowOut } = subBaseNumbers(minuend, subtrahend, base);
+  const hasSignBox = allowNegative;
+
+  const ansInt = diff.slice(0, diff.length - maxFracLen);
+  const ansFrac = diff.slice(diff.length - maxFracLen);
+
+  const aStr = aInt + '.' + aFracPad;
+  const bStr = bInt + '.' + bFracPad;
+  const answerStr = ansInt + '.' + ansFrac;
+
+  const totalUserLen = (hasSignBox ? 1 : 0) + ansInt.length + 1 + ansFrac.length;
+  const initialUserAns = Array(totalUserLen).fill(defaultChar);
+  if (hasSignBox) initialUserAns[0] = '+';
+  const dotIdx = (hasSignBox ? 1 : 0) + ansInt.length;
+  initialUserAns[dotIdx] = '.';
+
+  return {
+    op: 'sub', base, size,
+    a: aStr, b: bStr,
+    aInt, aFrac: aFracPad, bInt, bFrac: bFracPad,
+    answerInt: ansInt, answerFrac: ansFrac,
+    answer: answerStr, borrowOut,
+    isNegative, hasSignBox,
+    hasPoints: true, maxFracLen,
+    userAnswer: initialUserAns,
+    scored: false, timeTaken: null,
+  };
+}
+
+// Parses a base-N digit string into a BigInt, using the radix literal
+// prefixes BigInt understands natively (0b / 0o / 0x).
+function bigIntFromBaseStr(str, base) {
+  const prefix = base === 2 ? '0b' : base === 8 ? '0o' : base === 16 ? '0x' : '';
+  return BigInt(prefix + str);
+}
+
+// Works for Binary, Octal or Hexadecimal: full, untruncated product.
+function generateMultiplicationQuestion(size, base) {
+  const aInt = randomDigits(base, size);
+  const bInt = randomDigits(base, size);
+  const defaultChar = base === 2 ? '0' : '?';
+
+  if (!state.enablePoints) {
+    const product = bigIntFromBaseStr(aInt, base) * bigIntFromBaseStr(bInt, base);
+    const answerLen = size * 2;
+    const answer = product.toString(base).toUpperCase().padStart(answerLen, '0');
+    return {
+      op: 'mul', base, size, a: aInt, b: bInt,
+      answer, isNegative: false, hasSignBox: false,
+      hasPoints: false,
+      userAnswer: Array(answerLen).fill(defaultChar),
+      scored: false, timeTaken: null,
+    };
+  }
+
+  // Points enabled
+  const lenA = Math.floor(Math.random() * 4) + 1;
+  const lenB = Math.floor(Math.random() * 4) + 1;
+  const aFracRaw = randomDigits(base, lenA);
+  const bFracRaw = randomDigits(base, lenB);
+  const maxFracLen = Math.max(lenA, lenB);
+
+  const aFracPad = aFracRaw.padEnd(maxFracLen, '0');
+  const bFracPad = bFracRaw.padEnd(maxFracLen, '0');
+
+  const fullA = aInt + aFracPad;
+  const fullB = bInt + bFracPad;
+  const totalFracLen = maxFracLen + maxFracLen;
+
+  const product = bigIntFromBaseStr(fullA, base) * bigIntFromBaseStr(fullB, base);
+  const totalLen = size * 2 + totalFracLen;
+  const prodStr = product.toString(base).toUpperCase().padStart(totalLen, '0');
+
+  const ansInt = prodStr.slice(0, prodStr.length - totalFracLen);
+  const ansFrac = prodStr.slice(prodStr.length - totalFracLen);
+
+  const aStr = aInt + '.' + aFracPad;
+  const bStr = bInt + '.' + bFracPad;
+  const answerStr = ansInt + '.' + ansFrac;
+
+  const totalUserLen = ansInt.length + 1 + ansFrac.length;
+  const initialUserAns = Array(totalUserLen).fill(defaultChar);
+  initialUserAns[ansInt.length] = '.';
+
+  return {
+    op: 'mul', base, size,
+    a: aStr, b: bStr,
+    aInt, aFrac: aFracPad, bInt, bFrac: bFracPad,
+    answerInt: ansInt, answerFrac: ansFrac,
+    answer: answerStr,
+    isNegative: false, hasSignBox: false,
+    hasPoints: true, totalFracLen,
+    userAnswer: initialUserAns,
+    scored: false, timeTaken: null,
+  };
+}
+
+function createQuestion() {
+  const size = DIFFICULTY[state.base][state.level];
+  switch (state.op) {
+    case 'add': return generateAdditionQuestion(size, state.base);
+    case 'sub': return generateSubtractionQuestion(size, state.base, state.allowNegative);
+    case 'mul': return generateMultiplicationQuestion(size, state.base);
+  }
+}
+
+/* ---------------------------------------------------------------------
+   4. RENDERING
+   --------------------------------------------------------------------- */
+function computeBoxSize(columnCount) {
+  const available = Math.min(window.innerWidth, 980) - 40;
+  const gap = 4;
+  const labelWidth = 34;
+  let size = Math.floor((available - labelWidth - gap * columnCount) / columnCount);
+  size = Math.max(14, Math.min(44, size));
+  document.documentElement.style.setProperty('--box-size', size + 'px');
+  document.documentElement.style.setProperty('--box-gap', Math.max(2, Math.min(6, size / 8)) + 'px');
+}
+
+function makeBox(content, extraClasses = '') {
+  const div = document.createElement('div');
+  div.className = 'bit-box ' + extraClasses;
+  div.textContent = content;
+  return div;
+}
+
+function renderOperandRow(container, digits, labelChar) {
+  container.innerHTML = '';
+  const label = document.createElement('div');
+  label.className = 'row-label operator';
+  label.textContent = labelChar || '';
+  container.appendChild(label);
+  for (const d of digits) {
+    if (d === '.') {
+      const dotBox = document.createElement('div');
+      dotBox.className = 'bit-box dot-box';
+      dotBox.textContent = '.';
+      container.appendChild(dotBox);
+    } else {
+      container.appendChild(makeBox(d));
+    }
+  }
+}
+
+function normalizeAnswerString(str) {
+  if (!str) return '';
+  let s = str.trim().toUpperCase();
+  let sign = '';
+  if (s.startsWith('-')) {
+    sign = '-';
+    s = s.slice(1);
+  } else if (s.startsWith('+')) {
+    s = s.slice(1);
+  }
+  s = s.replace(/\?/g, '');
+
+  if (s.includes('.')) {
+    const parts = s.split('.');
+    let intPart = parts[0] ? parts[0].replace(/^0+(?=\d|[A-F])/g, '') : '';
+    if (intPart === '' && (parts[0] === '0' || parts[0] === '' || str.includes('0'))) intPart = '0';
+
+    let fracPart = parts[1] || '';
+    fracPart = fracPart.replace(/0+$/g, '');
+    if (fracPart.length > 0) {
+      return sign + intPart + '.' + fracPart;
+    }
+    return sign + intPart;
+  }
+
+  s = s.replace(/^0+(?=\d|[A-F])/g, '');
+  if (s === '' && str.includes('0')) s = '0';
+  return sign + s;
+}
+
+function syncSingleInputToUserAnswer(q, rawVal) {
+  let raw = rawVal.trim().toUpperCase();
+
+  if (!q.hasPoints) {
+    const N = q.userAnswer.length;
+    const D = q.hasSignBox ? N - 1 : N;
+
+    let sign = '?';
+    let digitsStr = raw;
+
+    if (q.hasSignBox) {
+      if (raw.startsWith('+')) {
+        sign = '+';
+        digitsStr = raw.slice(1);
+      } else if (raw.startsWith('-')) {
+        sign = '-';
+        digitsStr = raw.slice(1);
+      } else if (raw.startsWith('=')) {
+        sign = '+';
+        digitsStr = raw.slice(1);
+      } else {
+        sign = '+';
+      }
+    }
+
+    const validChars = DIGIT_CHARS.slice(0, q.base);
+    let cleanDigits = digitsStr.split('').filter(ch => validChars.includes(ch)).join('');
+
+    while (cleanDigits.length > 1 && cleanDigits.startsWith('0') && cleanDigits.length > D) {
+      cleanDigits = cleanDigits.slice(1);
+    }
+    if (cleanDigits.length > D) {
+      cleanDigits = cleanDigits.slice(-D);
+    }
+
+    let padChar = cleanDigits.length > 0 ? '0' : '?';
+    const padCount = D - cleanDigits.length;
+    const digitArr = Array(padCount).fill(padChar).concat(cleanDigits.split(''));
+
+    if (q.hasSignBox) {
+      q.userAnswer = [sign, ...digitArr];
+    } else {
+      q.userAnswer = digitArr;
+    }
+    return;
+  }
+
+  // Points enabled
+  const validChars = DIGIT_CHARS.slice(0, q.base);
+  let sign = '?';
+  let body = raw;
+
+  if (q.hasSignBox) {
+    if (raw.startsWith('-')) {
+      sign = '-';
+      body = raw.slice(1);
+    } else if (raw.startsWith('+') || raw.startsWith('=')) {
+      sign = '+';
+      body = raw.slice(1);
+    } else {
+      sign = '+';
+    }
+  }
+
+  const parts = body.split('.');
+  let rawInt = parts[0] || '';
+  let rawFrac = parts.length > 1 ? parts[1] : '';
+
+  let cleanInt = rawInt.split('').filter(ch => validChars.includes(ch)).join('');
+  let cleanFrac = rawFrac.split('').filter(ch => validChars.includes(ch)).join('');
+
+  const expectedIntLen = q.answerInt ? q.answerInt.length : q.size;
+  const expectedFracLen = q.answerFrac ? q.answerFrac.length : 1;
+
+  let padIntCount = expectedIntLen - cleanInt.length;
+  let intArr = [];
+  if (padIntCount > 0) {
+    intArr = Array(padIntCount).fill(cleanInt.length > 0 ? '0' : '?').concat(cleanInt.split(''));
+  } else {
+    intArr = cleanInt.slice(-expectedIntLen).split('');
+  }
+
+  let padFracCount = expectedFracLen - cleanFrac.length;
+  let fracArr = [];
+  if (padFracCount > 0) {
+    fracArr = cleanFrac.split('').concat(Array(padFracCount).fill(cleanFrac.length > 0 ? '0' : '?'));
+  } else {
+    fracArr = cleanFrac.slice(0, expectedFracLen).split('');
+  }
+
+  let finalUserAns = [];
+  if (q.hasSignBox) finalUserAns.push(sign);
+  finalUserAns.push(...intArr);
+  finalUserAns.push('.');
+  finalUserAns.push(...fracArr);
+
+  q.userAnswer = finalUserAns;
+}
+
+function renderAnswerRow(question) {
+  const row = $('#answerRow');
+  row.innerHTML = '';
+  const label = document.createElement('div');
+  label.className = 'row-label';
+  label.textContent = '=';
+  row.appendChild(label);
+
+  if (state.hideBoxes) {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.id = 'singleAnswerInput';
+    input.className = 'single-answer-input';
+    input.autocomplete = 'off';
+    input.setAttribute('spellcheck', 'false');
+    input.setAttribute('autocorrect', 'off');
+
+    const BASE_NAMES = { 2: 'binary', 8: 'octal', 10: 'decimal', 16: 'hex' };
+    input.placeholder = question.hasPoints
+      ? `Type ${BASE_NAMES[question.base] || ''} result (e.g. 101.01)...`
+      : `Type ${BASE_NAMES[question.base] || ''} result...`;
+
+    if (question.base === 16 || question.hasSignBox || question.hasPoints) {
+      input.setAttribute('inputmode', 'text');
+      input.setAttribute('autocapitalize', 'characters');
+    } else {
+      input.setAttribute('inputmode', 'numeric');
+    }
+
+    let userStr = '';
+    if (question.hasSignBox) {
+      const s = question.userAnswer[0] !== '?' ? question.userAnswer[0] : '';
+      const d = question.userAnswer.slice(1).filter(v => v !== '?').join('');
+      userStr = s + d;
+    } else {
+      userStr = question.userAnswer.filter(v => v !== '?').join('');
+    }
+
+    input.value = userStr;
+
+    if (question.scored) {
+      input.disabled = true;
+      const correctArr = correctAnswerArray(question);
+      const userNorm = normalizeAnswerString(question.userAnswer.join(''));
+      const correctNorm = normalizeAnswerString(correctArr.join(''));
+      const allCorr = (userNorm !== '' && userNorm === correctNorm);
+      input.classList.add(allCorr ? 'correct' : 'wrong');
+    } else {
+      input.addEventListener('input', () => {
+        const q = currentQuestion();
+        if (!q || q.scored) return;
+        syncSingleInputToUserAnswer(q, input.value);
+      });
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          submitAnswer();
+        }
+      });
+    }
+
+    row.appendChild(input);
+    return;
+  }
+
+  const correctArr = correctAnswerArray(question);
+
+  question.userAnswer.forEach((val, idx) => {
+    if (correctArr[idx] === '.') {
+      const dotBox = document.createElement('div');
+      dotBox.className = 'bit-box dot-box';
+      dotBox.textContent = '.';
+      row.appendChild(dotBox);
+      return;
+    }
+
+    const box = document.createElement('input');
+    box.type = 'text';
+    box.className = 'bit-box answer-box ' + (val === '?' ? 'placeholder' : 'filled');
+    box.value = val === '?' ? '' : val;
+    box.placeholder = '?';
+    box.dataset.index = idx;
+    box.maxLength = 1;
+    box.autocomplete = 'off';
+    box.setAttribute('spellcheck', 'false');
+    box.setAttribute('autocorrect', 'off');
+
+    const isSignBox = question.hasSignBox && idx === 0;
+    const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    if (isSignBox) {
+      box.setAttribute('inputmode', 'text');
+    } else if (question.base === 16) {
+      box.setAttribute('inputmode', 'text');
+      box.setAttribute('autocapitalize', 'characters');
+    } else if (question.base === 2 && isTouchDevice) {
+      box.setAttribute('inputmode', 'none');
+    } else {
+      box.setAttribute('inputmode', 'numeric');
+    }
+
+    if (question.scored) {
+      box.disabled = true;
+    }
+
+    box.addEventListener('focus', () => {
+      state.focusedBoxIndex = idx;
+      box.select();
+    });
+
+    box.addEventListener('click', () => {
+      const q = currentQuestion();
+      if (!q || q.scored) return;
+
+      const isBinaryDigit = (q.base === 2 && !isSignBox);
+      if (isBinaryDigit) {
+        const current = q.userAnswer[idx];
+        let nextVal = '1';
+        if (current === '0') nextVal = '1';
+        else if (current === '1') nextVal = '0';
+        else nextVal = '1';
+        setBoxValue(idx, nextVal);
+      }
+      box.select();
+    });
+
+    box.addEventListener('input', () => {
+      const q = currentQuestion();
+      if (!q || q.scored) {
+        box.value = q ? (q.userAnswer[idx] === '?' ? '' : q.userAnswer[idx]) : '';
+        return;
+      }
+      let raw = box.value.trim().toUpperCase();
+      const defaultChar = q.base === 2 ? '0' : '?';
+      if (!raw) {
+        setBoxValue(idx, defaultChar);
+        return;
+      }
+      const char = raw.slice(-1);
+      const isSign = q.hasSignBox && idx === 0;
+
+      if (isSign) {
+        if (char === '-' || char === '+' || char === '=') {
+          const signVal = char === '=' ? '+' : char;
+          setBoxValue(idx, signVal);
+          moveFocus(1);
+        } else {
+          box.value = q.userAnswer[idx] === '?' ? '' : q.userAnswer[idx];
+        }
+      } else {
+        const validChars = DIGIT_CHARS.slice(0, q.base);
+        if (validChars.includes(char)) {
+          setBoxValue(idx, char);
+          moveFocus(1);
+        } else {
+          box.value = q.userAnswer[idx] === '?' ? '' : q.userAnswer[idx];
+        }
+      }
+    });
+
+    box.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        submitAnswer();
+        return;
+      }
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        moveFocus(-1);
+        return;
+      }
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        moveFocus(1);
+        return;
+      }
+      if (e.key === 'Backspace') {
+        const q = currentQuestion();
+        if (q && !q.scored) {
+          e.preventDefault();
+          const defaultChar = q.base === 2 ? '0' : '?';
+          if (q.userAnswer[idx] !== defaultChar || box.value !== '') {
+            setBoxValue(idx, defaultChar);
+          } else {
+            moveFocus(-1);
+          }
+        }
+      }
+    });
+
+    row.appendChild(box);
+  });
+}
+
+function renderIndicatorRows(question) {
+  const carryWrap = $('#carryRowWrap');
+  const borrowWrap = $('#borrowRowWrap');
+  carryWrap.style.display = 'none';
+  borrowWrap.style.display = 'none';
+  carryWrap.innerHTML = '';
+  borrowWrap.innerHTML = '';
+
+  if (question.op === 'add' && question.carryIn) {
+    carryWrap.style.display = 'flex';
+    const spacer = document.createElement('div');
+    spacer.className = 'row-label';
+    carryWrap.appendChild(spacer);
+
+    const fracLen = question.hasPoints ? (question.maxFracLen || 0) : 0;
+    question.carryIn.forEach((c, idx) => {
+      if (question.hasPoints && idx === question.carryIn.length - fracLen) {
+        const dotSpacer = document.createElement('div');
+        dotSpacer.className = 'bit-box dot-box';
+        dotSpacer.style.visibility = 'hidden';
+        carryWrap.appendChild(dotSpacer);
+      }
+      const box = document.createElement('div');
+      box.className = 'indicator-box';
+      box.textContent = c ? '1' : '';
+      carryWrap.appendChild(box);
+    });
+  } else if (question.op === 'sub' && question.borrowOut) {
+    borrowWrap.style.display = 'flex';
+    const spacer = document.createElement('div');
+    spacer.className = 'row-label';
+    borrowWrap.appendChild(spacer);
+
+    const fracLen = question.hasPoints ? (question.maxFracLen || 0) : 0;
+    question.borrowOut.forEach((bOut, idx) => {
+      if (question.hasPoints && idx === question.borrowOut.length - fracLen) {
+        const dotSpacer = document.createElement('div');
+        dotSpacer.className = 'bit-box dot-box';
+        dotSpacer.style.visibility = 'hidden';
+        borrowWrap.appendChild(dotSpacer);
+      }
+      const box = document.createElement('div');
+      box.className = 'indicator-box borrow';
+      box.textContent = bOut ? '\u2190' : '';
+      borrowWrap.appendChild(box);
+    });
+  }
+}
+
+function updateControlButtonsState() {
+  const q = currentQuestion();
+  const resetBtn = $('#resetBtn');
+  const submitBtn = $('#submitBtn');
+  if (!q) return;
+  if (resetBtn) resetBtn.disabled = q.scored;
+  if (submitBtn) submitBtn.disabled = q.scored;
+}
+
+function renderQuestion(question) {
+  computeBoxSize(Math.max(question.a.length, question.userAnswer.length) + 1);
+
+  renderOperandRow($('#operandARow'), question.a.split(''), '');
+  renderOperandRow($('#operandBRow'), question.b.split(''), OP_SYMBOLS[question.op]);
+  renderAnswerRow(question);
+  renderIndicatorRows(question);
+  renderSolutionRow(question, false);
+
+  $('#scoreDisplay').innerHTML = '';
+  $('#sizeDisplay').textContent = question.size + (question.base === 2 ? ' bit' : ' digit') + (question.size > 1 ? 's' : '');
+  updateControlButtonsState();
+
+  // Prefetch Gemini AI solution in background immediately upon question generation
+  prefetchArithmeticAiSolution(question);
+
+  // Before submitting, NO AI solution button scope should be present
+  const aiSolBtn = $('#aiSolBtn');
+  if (aiSolBtn) {
+    aiSolBtn.style.display = question.scored ? 'inline-flex' : 'none';
+  }
+
+  resetTimer();
+  startTimer();
+
+  if (state.hideBoxes) {
+    const singleInput = $('#singleAnswerInput');
+    if (singleInput && !question.scored) {
+      setTimeout(() => {
+        singleInput.focus();
+      }, 60);
+    }
+  } else {
+    const firstBox = $('.answer-box[data-index="0"]');
+    if (firstBox && !question.scored) {
+      state.focusedBoxIndex = 0;
+      setTimeout(() => {
+        firstBox.focus();
+        if (typeof firstBox.select === 'function') firstBox.select();
+      }, 60);
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------
+   5. ANSWER BOX INTERACTION
+   --------------------------------------------------------------------- */
+function currentQuestion() { return state.history[state.historyIndex]; }
+
+function updateSingleBox(idx, val) {
+  const box = $(`.answer-box[data-index="${idx}"]`);
+  if (!box) return;
+  box.value = val === '?' ? '' : val;
+  box.classList.toggle('placeholder', val === '?');
+  box.classList.toggle('filled', val !== '?');
+  box.classList.remove('correct', 'wrong', 'unanswered-mark');
+}
+
+function setBoxValue(idx, val) {
+  const q = currentQuestion();
+  if (!q) return;
+  q.userAnswer[idx] = val;
+  playClickSound();
+  updateSingleBox(idx, val);
+}
+
+function moveFocus(delta) {
+  const boxes = $$('.answer-box');
+  if (!boxes.length) return;
+  let idx = state.focusedBoxIndex + delta;
+  idx = Math.max(0, Math.min(boxes.length - 1, idx));
+  state.focusedBoxIndex = idx;
+  const targetBox = boxes[idx];
+  if (targetBox) {
+    targetBox.focus();
+    if (typeof targetBox.select === 'function') targetBox.select();
+  }
+}
+
+// Keyboard support: valid digit keys per base, arrows move focus,
+// backspace clears, enter submits.
+function handleKeydown(e) {
+  const q = currentQuestion();
+  if (!q) return;
+
+  if (e.key === 'Enter') { e.preventDefault(); submitAnswer(); return; }
+
+  // If focus is inside an answer input box, let the input box event listener handle it
+  if (e.target && e.target.tagName === 'INPUT') return;
+
+  const boxes = $$('.answer-box');
+  if (!boxes.length) return;
+
+  if (e.key === 'ArrowRight') { e.preventDefault(); moveFocus(1); return; }
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); moveFocus(-1); return; }
+
+  if (q.scored) return;
+
+  const idx = state.focusedBoxIndex;
+  const isSign = q.hasSignBox && idx === 0;
+
+  if (e.key === 'Backspace') { setBoxValue(idx, '?'); return; }
+
+  if (isSign) {
+    if (e.key === '-') setBoxValue(idx, '-');
+    else if (e.key === '+' || e.key === '=') setBoxValue(idx, '+');
+    return;
+  }
+
+  if (e.key.length === 1) {
+    const validChars = DIGIT_CHARS.slice(0, q.base);
+    const up = e.key.toUpperCase();
+    if (validChars.includes(up)) setBoxValue(idx, up);
+  }
+}
+
+/* ---------------------------------------------------------------------
+   6. SUBMIT / SCORING
+   --------------------------------------------------------------------- */
+function correctAnswerArray(q) {
+  if (q.hasPoints) {
+    const intDigits = q.answerInt.split('');
+    const fracDigits = q.answerFrac.split('');
+    if (q.hasSignBox) {
+      return [q.isNegative ? '-' : '+', ...intDigits, '.', ...fracDigits];
+    }
+    return [...intDigits, '.', ...fracDigits];
+  }
+  const digits = q.answer.split('');
+  if (q.hasSignBox) return [q.isNegative ? '-' : '+', ...digits];
+  return digits;
+}
+
+function submitAnswer() {
+  const q = currentQuestion();
+  if (!q || q.scored) return;
+
+  stopTimer();
+  const correctArr = correctAnswerArray(q);
+  let correctCount = 0;
+
+  if (state.hideBoxes) {
+    const singleInput = $('#singleAnswerInput');
+    if (singleInput) {
+      singleInput.disabled = true;
+      syncSingleInputToUserAnswer(q, singleInput.value);
+    }
+  } else {
+    q.userAnswer.forEach((val, idx) => {
+      if (correctArr[idx] === '.') return;
+      const box = $(`.answer-box[data-index="${idx}"]`);
+      if (!box) return;
+      box.disabled = true;
+      box.classList.remove('placeholder', 'filled');
+      if (val === '?') {
+        box.classList.add('unanswered-mark');
+        box.value = '?';
+      } else if (val === correctArr[idx]) {
+        box.classList.add('correct');
+        correctCount++;
+      } else {
+        box.classList.add('wrong');
+      }
+    });
+  }
+
+  const total = correctArr.filter(c => c !== '.').length;
+  const userNorm = normalizeAnswerString(q.userAnswer.join(''));
+  const correctNorm = normalizeAnswerString(correctArr.join(''));
+  const allCorrect = (userNorm !== '' && userNorm === correctNorm);
+
+  if (state.hideBoxes) {
+    const singleInput = $('#singleAnswerInput');
+    if (singleInput) {
+      singleInput.classList.add(allCorrect ? 'correct' : 'wrong');
+    }
+    if (allCorrect) {
+      correctCount = total;
+    }
+  }
+
+  q.scored = true;
+  q.timeTaken = state.elapsed;
+
+  // Calculate & record points using NST engine
+  let ptsInfo = { pointsDelta: 0 };
+  if (window.NST) {
+    const BASE_NAMES = { '2': 'Binary', '8': 'Octal', '10': 'Decimal', '16': 'Hexadecimal' };
+    const OP_SYMBOLS = { 'add': '+', 'sub': '-', 'mul': '×', 'div': '÷' };
+    const problemDesc = `${BASE_NAMES[q.base] || ''} (${q.a} ${OP_SYMBOLS[q.op] || '+'} ${q.b})`;
+    const userStr = q.userAnswer.join('');
+    const correctStr = correctArr.join('');
+
+    ptsInfo = window.NST.recordQuestionResult({
+      type: 'arithmetic',
+      problemStr: problemDesc,
+      userAnswer: userStr,
+      correctAnswer: correctStr,
+      isCorrect: allCorrect,
+      level: state.level,
+      timeSeconds: state.elapsed
+    });
+    loadDashboard();
+  }
+
+  const scoreEl = $('#scoreDisplay');
+  const deltaTag = ptsInfo.pointsDelta > 0 ? `+${ptsInfo.pointsDelta} pts` : `${ptsInfo.pointsDelta} pts`;
+  const deltaColor = ptsInfo.pointsDelta > 0 ? '#16a34a' : '#dc2626';
+  scoreEl.innerHTML = `
+    <div class="label">${allCorrect ? 'Correct 🎉' : 'Incorrect ❌'}</div>
+    <div class="value ${allCorrect ? 'good' : 'bad'}">${correctCount} / ${total} <span style="font-size:15px; color:${deltaColor}; font-weight:800; margin-left:6px;">(${deltaTag})</span></div>
+  `;
+
+  allCorrect ? playSuccessSound() : playErrorSound();
+  updateSessionStats(allCorrect, state.elapsed);
+  updateControlButtonsState();
+  renderSolutionRow(q, true);
+  revealIndicators();
+
+  // Reveal the Gemini AI Solution button ONLY AFTER the user submits
+  const aiSolBtn = $('#aiSolBtn');
+  if (aiSolBtn) {
+    aiSolBtn.style.display = 'inline-flex';
+  }
+}
+
+/* ---------------------------------------------------------------------
+   7. SOLUTION ROW + CARRY/BORROW VISUALIZATION
+   --------------------------------------------------------------------- */
+function renderSolutionRow(question, animate = false) {
+  const row = $('#solutionRowWrap');
+  if (!row) return;
+  row.innerHTML = '';
+
+  if (!question || !question.scored) {
+    row.style.display = 'none';
+    return;
+  }
+
+  row.style.display = 'flex';
+
+  const label = document.createElement('div');
+  label.className = 'row-label operator';
+  label.style.color = 'var(--success)';
+  label.style.fontWeight = '800';
+  label.style.fontSize = '12px';
+  label.textContent = '✓';
+  row.appendChild(label);
+
+  const correctArr = correctAnswerArray(question);
+  correctArr.forEach((val, idx) => {
+    if (val === '.') {
+      const dotBox = document.createElement('div');
+      dotBox.className = 'bit-box dot-box';
+      dotBox.textContent = '.';
+      row.appendChild(dotBox);
+      return;
+    }
+    const box = document.createElement('div');
+    box.className = 'bit-box correct' + (animate ? ' reveal-anim' : '');
+    box.style.cursor = 'default';
+    box.textContent = val;
+    if (animate) {
+      box.style.animationDelay = (idx * 50) + 'ms';
+    }
+    row.appendChild(box);
+  });
+}
+
+function revealIndicators() {
+  const wrap = $('#carryRowWrap').style.display !== 'none' ? $('#carryRowWrap') : $('#borrowRowWrap');
+  const boxes = $$('.indicator-box', wrap);
+  boxes.slice().reverse().forEach((box, i) => {
+    setTimeout(() => box.classList.add('show'), i * 80);
+  });
+}
+
+/* ---------------------------------------------------------------------
+   8. RESET / NAVIGATION
+   --------------------------------------------------------------------- */
+function resetCurrentQuestion() {
+  const q = currentQuestion();
+  if (!q || q.scored) return;
+  const defaultChar = q.base === 2 ? '0' : '?';
+  q.userAnswer = q.userAnswer.map((val) => {
+    if (val === '.' || val === '+' || val === '-') return val;
+    return defaultChar;
+  });
+  q.scored = false;
+  renderQuestion(q);
+}
+
+function goToQuestion(index) {
+  if (index < 0 || index >= state.history.length) return;
+  state.historyIndex = index;
+  const q = currentQuestion();
+  renderQuestion(q);
+  if (q.scored) {
+    const correctArr = correctAnswerArray(q);
+    q.userAnswer.forEach((val, idx) => {
+      const box = $(`.answer-box[data-index="${idx}"]`);
+      if (!box) return;
+      box.classList.remove('placeholder', 'filled');
+      if (val === '?') box.classList.add('unanswered-mark');
+      else if (val === correctArr[idx]) box.classList.add('correct');
+      else box.classList.add('wrong');
+    });
+    renderSolutionRow(q, false);
+    stopTimer();
+  }
+}
+
+function nextQuestion() {
+  if (state.historyIndex < state.history.length - 1) {
+    goToQuestion(state.historyIndex + 1);
+  } else {
+    state.history.push(createQuestion());
+    goToQuestion(state.history.length - 1);
+  }
+}
+
+function previousQuestion() { goToQuestion(state.historyIndex - 1); }
+
+function randomQuestion() {
+  state.history = state.history.slice(0, state.historyIndex + 1);
+  state.history.push(createQuestion());
+  goToQuestion(state.history.length - 1);
+}
+
+/* ---------------------------------------------------------------------
+   9. TIMER
+   --------------------------------------------------------------------- */
+function startTimer() {
+  state.timerStart = performance.now() - state.elapsed * 1000;
+  state.timerRunning = true;
+  clearInterval(state.timerHandle);
+  state.timerHandle = setInterval(() => {
+    state.elapsed = (performance.now() - state.timerStart) / 1000;
+    $('#timerDisplay').textContent = state.elapsed.toFixed(1) + 's';
+  }, 100);
+}
+function stopTimer() { state.timerRunning = false; clearInterval(state.timerHandle); }
+function resetTimer() { stopTimer(); state.elapsed = 0; $('#timerDisplay').textContent = '0.0s'; }
+
+/* ---------------------------------------------------------------------
+   10. SESSION STATS
+   --------------------------------------------------------------------- */
+function updateSessionStats(wasFullyCorrect, timeTaken) {
+  const s = state.session;
+  s.solved++;
+  s.totalTime += timeTaken;
+  if (wasFullyCorrect) {
+    s.correct++;
+    s.streak++;
+    s.bestStreak = Math.max(s.bestStreak, s.streak);
+  } else {
+    s.streak = 0;
+  }
+  renderStats();
+}
+
+function renderStats() {
+  const s = state.session;
+  $('#statSolved').textContent = s.solved;
+  $('#statCorrect').textContent = s.correct;
+  $('#statAccuracy').textContent = s.solved ? Math.round((s.correct / s.solved) * 100) + '%' : '0%';
+  $('#statStreak').textContent = s.streak;
+  $('#statBestStreak').textContent = s.bestStreak;
+  $('#statAvgTime').textContent = (s.solved ? (s.totalTime / s.solved) : 0).toFixed(1) + 's';
+  $('#streakDisplay').textContent = s.streak;
+}
+
+/* ---------------------------------------------------------------------
+   11. SCREEN / SETTINGS CONTROL
+   --------------------------------------------------------------------- */
+function startPractice(base, op) {
+  state.base = base;
+  state.op = op;
+  $('#modeLabel').textContent = `${BASE_NAMES[base]} ${OP_NAMES[op]}`;
+  $('#home-screen').classList.remove('active');
+  $('#practice-screen').classList.add('active');
+
+  state.history = [createQuestion()];
+  state.historyIndex = 0;
+  goToQuestion(0);
+}
+
+function backToHome() {
+  stopTimer();
+  $('#practice-screen').classList.remove('active');
+  $('#home-screen').classList.add('active');
+}
+
+function setDifficulty(level) {
+  state.level = level;
+  $$('#difficultyGroup .pill').forEach(p => p.classList.toggle('active', p.dataset.level === level));
+}
+
+// Shows the actual bit count (relative to Binary) under each difficulty
+// pill label, e.g. "Easy · 8 bits", so the size is clear before starting.
+function labelDifficultyPills() {
+  $$('#difficultyGroup .pill').forEach(p => {
+    const level = p.dataset.level;
+    const bits = DIFFICULTY[2][level];
+    const countEl = p.querySelector('.pill-count');
+    if (countEl) countEl.textContent = `${bits} bits`;
+  });
+}
+
+/* ---------------------------------------------------------------------
+   12. EVENT WIRING
+   --------------------------------------------------------------------- */
+function init() {
+  $$('.mode-card').forEach(card => {
+    const go = () => startPractice(Number(card.dataset.base), card.dataset.op);
+    card.addEventListener('click', go);
+    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+  });
+
+  $$('#difficultyGroup .pill').forEach(p => {
+    p.addEventListener('click', () => setDifficulty(p.dataset.level));
+  });
+  labelDifficultyPills();
+
+  const yearEl = $('#creditYear');
+  if (yearEl) yearEl.textContent = new Date().getFullYear();
+
+  $('#negativeToggle').addEventListener('change', e => { state.allowNegative = e.target.checked; });
+  $('#soundToggle').addEventListener('change', e => { state.soundOn = e.target.checked; });
+
+  const pointsToggleEl = $('#pointsToggle');
+  if (pointsToggleEl) {
+    pointsToggleEl.checked = state.enablePoints;
+    pointsToggleEl.addEventListener('change', e => {
+      state.enablePoints = e.target.checked;
+      localStorage.setItem('enablePoints', state.enablePoints);
+    });
+  }
+
+  const hideBoxesEl = $('#hideBoxesToggle');
+  if (hideBoxesEl) {
+    hideBoxesEl.checked = state.hideBoxes;
+    hideBoxesEl.addEventListener('change', e => {
+      state.hideBoxes = e.target.checked;
+      localStorage.setItem('hideBoxes', state.hideBoxes);
+      const q = currentQuestion();
+      if (q) renderAnswerRow(q);
+    });
+  }
+
+  $('#backBtn').addEventListener('click', backToHome);
+  $('#submitBtn').addEventListener('click', submitAnswer);
+  $('#resetBtn').addEventListener('click', resetCurrentQuestion);
+  $('#prevBtn').addEventListener('click', previousQuestion);
+  $('#nextBtn').addEventListener('click', nextQuestion);
+  $('#randomBtn').addEventListener('click', randomQuestion);
+
+  const aiSolBtn = $('#aiSolBtn');
+  if (aiSolBtn) {
+    aiSolBtn.addEventListener('click', openAiModal);
+  }
+
+  const aiOverlay = $('#aiModalOverlay');
+  if (aiOverlay) {
+    aiOverlay.addEventListener('click', e => {
+      if (e.target === aiOverlay) closeAiModal();
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeAiModal();
+    else handleKeydown(e);
+  });
+
+  window.addEventListener('resize', () => {
+    const q = currentQuestion();
+    if (q) computeBoxSize(Math.max(q.a.length, q.userAnswer.length) + 1);
+  });
+
+  renderStats();
+}
+
+/* =====================================================================
+   GEMINI AI PREFETCH & STEP-BY-STEP SOLUTION ENGINE
+   ===================================================================== */
+function prefetchArithmeticAiSolution(q) {
+  if (!q || q.aiSolutionPromise) return;
+
+  const baseName = BASE_NAMES[q.base] || `Base ${q.base}`;
+  const opName = OP_NAMES[q.op] || 'Operation';
+  const opSymbol = OP_SYMBOLS[q.op] || '+';
+
+  const prompt = `You are an expert Computer Science and Digital Logic tutor.
+Provide a clean, beautifully formatted, step-by-step mathematical explanation for this positional number system arithmetic problem:
+- Number System: ${baseName} (Base ${q.base})
+- Operation: ${opName} (${opSymbol})
+- Operand A: ${q.a}
+- Operand B: ${q.b}
+- Correct Answer: ${q.answer}${q.isNegative ? ' (Negative result)' : ''}
+
+CRITICAL FORMATTING INSTRUCTIONS:
+1. DO NOT write or output any programming code, Python scripts, function definitions, code blocks, or library imports (e.g. "import math", "import numpy", "def solve()").
+2. DO NOT use raw LaTeX equations like \\frac, \\begin{align}, \\text{}, or dollar-sign math ($$). Use clean Unicode symbols (×, ÷, +, −, ➔, 2³, 16¹, Base 16).
+3. Use clean Markdown headings (### for title, #### for steps), numbered lists (1., 2., 3.), bold text, and inline code backticks (\`...\`) for numbers and intermediate digits.
+4. End clearly with "**Final Result:** \`${q.answer}\`".`;
+
+  if (window.callGeminiAPI) {
+    q.aiSolutionPromise = window.callGeminiAPI(prompt).then(sol => {
+      return sol || generateFallbackArithmeticExplanation(q);
+    }).catch((err) => {
+      console.warn("Gemini API call failed, generating fallback arithmetic explanation:", err);
+      return generateFallbackArithmeticExplanation(q);
+    });
+  } else {
+    q.aiSolutionPromise = Promise.resolve(generateFallbackArithmeticExplanation(q));
+  }
+}
+
+function generateFallbackArithmeticExplanation(q) {
+  const baseName = BASE_NAMES[q.base] || `Base ${q.base}`;
+  const opName = OP_NAMES[q.op] || 'Operation';
+  let markdown = `### Step-by-Step ${baseName} ${opName}\n\n`;
+  markdown += `**Problem:** \`${q.a}\` ${OP_SYMBOLS[q.op]} \`${q.b}\` in **${baseName} (Base ${q.base})**\n\n`;
+
+  if (q.hasPoints) {
+    markdown += `*Note: Align radix points by padding trailing zeros to fractional parts before performing column arithmetic.*\n\n`;
+  }
+
+  if (q.op === 'add') {
+    markdown += `#### Column-by-Column Addition:\n`;
+    let step = 1;
+    const n = q.a.length;
+    for (let i = n - 1; i >= 0; i--) {
+      if (q.a[i] === '.' || q.b[i] === '.') {
+        markdown += `${step++}. **Radix Point:** Align fractional digits across the decimal point.\n`;
+        continue;
+      }
+      const dA = digitValue(q.a[i]);
+      const dB = digitValue(q.b[i]);
+      const carry = (q.carryIn && q.carryIn[i]) || 0;
+      const sum = dA + dB + carry;
+      const rem = sum % q.base;
+      const newCarry = sum >= q.base ? 1 : 0;
+      markdown += `${step++}. **Column (from right):** \`${digitChar(dA)}\` + \`${digitChar(dB)}\`${carry ? ` + carry \`1\`` : ''} = \`${sum}\` (decimal) ➔ Digit \`${digitChar(rem)}\`, Carry = \`${newCarry}\`.\n`;
+    }
+    markdown += `\n**Final Result:** \`${q.answer}\`\n`;
+  } else if (q.op === 'sub') {
+    markdown += `#### Column-by-Column Subtraction:\n`;
+    let step = 1;
+    const n = q.a.length;
+    for (let i = n - 1; i >= 0; i--) {
+      if (q.a[i] === '.' || q.b[i] === '.') {
+        markdown += `${step++}. **Radix Point:** Align fractional digits across the decimal point.\n`;
+        continue;
+      }
+      const dA = digitValue(q.a[i]);
+      const dB = digitValue(q.b[i]);
+      const bOut = (q.borrowOut && q.borrowOut[i]) || 0;
+      markdown += `${step++}. **Column (from right):** Subtract \`${digitChar(dB)}\` from \`${digitChar(dA)}\`${bOut ? ` (borrow required)` : ''}.\n`;
+    }
+    markdown += `\n**Final Difference:** \`${q.answer}\`\n`;
+  } else {
+    markdown += `#### Step-by-Step Product:\n`;
+    markdown += `Multiply \`${q.a}\` by \`${q.b}\` in Base ${q.base}.\n\n`;
+    markdown += `**Final Product:** \`${q.answer}\`\n`;
+  }
+  return markdown;
+}
+
+function formatMarkdownToHTML(md) {
+  if (!md) return '';
+
+  // Pre-process & clean LaTeX/math symbols, dollar signs, and code block noise
+  let sanitized = md
+    // Strip code fences
+    .replace(/```[a-z]*/gi, '')
+    // Clean LaTeX math blocks $$ ... $$ and $ ... $
+    .replace(/\$\$\\text\{([^}]+)\}\$\$/g, '$1')
+    .replace(/\$\$(.*?)\$\$/gs, (_, inner) => inner.trim())
+    .replace(/\$\\text\{([^}]+)\}\$/g, '$1')
+    .replace(/\$([^$]+)\$/g, (_, inner) => {
+      let cleaned = inner
+        .replace(/\\text\{([^}]+)\}/g, '$1')
+        .replace(/\\times/g, '×')
+        .replace(/\\div/g, '÷')
+        .replace(/\\cdot/g, '·')
+        .replace(/\\rightarrow|\\Rightarrow|\\to/g, '➔')
+        .replace(/_\{(\d+)\}/g, '<sub>$1</sub>')
+        .replace(/_(\d+)/g, '<sub>$1</sub>')
+        .replace(/\^\{(\d+)\}/g, '<sup>$1</sup>')
+        .replace(/\^(\d+)/g, '<sup>$1</sup>');
+      return `<code class="sol-code-pill">${cleaned}</code>`;
+    })
+    // Standalone LaTeX symbol replacements
+    .replace(/\\text\{([^}]+)\}/g, '$1')
+    .replace(/\\times/g, '×')
+    .replace(/\\div/g, '÷')
+    .replace(/\\cdot/g, '·')
+    .replace(/\\rightarrow|\\Rightarrow|\\to/g, '➔')
+    .replace(/_\{(\d+)\}/g, '<sub>$1</sub>')
+    .replace(/_(\d+)/g, '<sub>$1</sub>')
+    .replace(/\^\{(\d+)\}/g, '<sup>$1</sup>')
+    .replace(/\^(\d+)/g, '<sup>$1</sup>')
+    // Remove leftover dollar signs
+    .replace(/\$/g, '');
+
+  const lines = sanitized.split('\n');
+  let out = ['<div class="sol-container">'];
+
+  lines.forEach(rawLine => {
+    let line = rawLine.trim();
+    if (!line) return;
+
+    // Filter out code block markers and programming library imports
+    if (line.startsWith('```') || /^import\s+/i.test(line) || /^from\s+/i.test(line) || /^def\s+/i.test(line) || /^return\s+/i.test(line) || /soek/i.test(line)) {
+      return;
+    }
+
+    if (line.startsWith('### ') || line.startsWith('## ') || line.startsWith('# ')) {
+      const title = line.replace(/^#{1,3}\s+/, '').replace(/^#+\s*/, '');
+      out.push(`
+        <div class="sol-header-card">
+          <span class="sol-tag">✨ Step-by-Step AI Solution</span>
+          <h3 class="sol-title">${title}</h3>
+        </div>
+      `);
+      return;
+    }
+
+    if (line.startsWith('#### ')) {
+      const subTitle = line.replace(/^#{4}\s+/, '').replace(/^#+\s*/, '');
+      out.push(`
+        <div class="sol-step-heading">
+          <span>💡</span>
+          <span>${subTitle}</span>
+        </div>
+      `);
+      return;
+    }
+
+    let formatted = line
+      .replace(/^#+\s*/, '') // strip any leftover leading #
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/`([^`]+)`/g, '<code class="sol-code-pill">$1</code>');
+
+    if (line.includes('Final Result:') || line.includes('Final Product:') || line.includes('Final Difference:')) {
+      const valMatch = line.match(/`([^`]+)`/) || line.match(/<strong>(.*?)<\/strong>/);
+      const valStr = valMatch ? valMatch[1] : line.replace(/.*?:/, '').replace(/[$#]/g, '').trim();
+      const label = line.includes('Product') ? 'Final Product' : (line.includes('Difference') ? 'Final Difference' : 'Final Result');
+      out.push(`
+        <div class="sol-result-card">
+          <span class="sol-res-label">🎯 ${label}</span>
+          <div class="sol-res-value">${valStr}</div>
+        </div>
+      `);
+      return;
+    }
+
+    if (line.startsWith('**Problem:**') || line.startsWith('Problem:')) {
+      out.push(`
+        <div class="sol-problem-box">
+          ${formatted}
+        </div>
+      `);
+      return;
+    }
+
+    const numMatch = line.match(/^(\d+)\.\s+(.*)/);
+    if (numMatch) {
+      const stepNum = numMatch[1];
+      const stepText = numMatch[2]
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/`([^`]+)`/g, '<code class="sol-code-pill">$1</code>');
+
+      out.push(`
+        <div class="sol-step-item">
+          <div class="sol-step-badge">${stepNum}</div>
+          <div class="sol-step-text">${stepText}</div>
+        </div>
+      `);
+      return;
+    }
+
+    if (line.startsWith('- ') || line.startsWith('* ')) {
+      const bulletText = formatted.replace(/^[-*]\s+/, '');
+      out.push(`
+        <div class="sol-step-item">
+          <div class="sol-step-badge" style="background:rgba(99,102,241,0.2); color:#a5b4fc; box-shadow:none;">•</div>
+          <div class="sol-step-text">${bulletText}</div>
+        </div>
+      `);
+      return;
+    }
+
+    out.push(`<p style="margin:2px 0; font-size:13.5px; line-height:1.6; color:var(--text);">${formatted}</p>`);
+  });
+
+  out.push('</div>');
+  return out.join('\n');
+}
+
+function openAiModal() {
+  const overlay = $('#aiModalOverlay');
+  if (!overlay) return;
+  overlay.classList.add('show');
+
+  const q = currentQuestion();
+  const body = $('#aiModalBody');
+  if (!q) {
+    body.innerHTML = '<p>No active question found.</p>';
+    return;
+  }
+
+  body.innerHTML = `
+    <div style="text-align:center; padding:30px;">
+      <div style="font-size:16px; font-weight:700; color:var(--primary);">✨ Gemini AI is generating step-by-step solution...</div>
+      <div style="font-size:13px; color:var(--item-subtext, #64748b); margin-top:8px;">Analyzing column operations & carry/borrow steps</div>
+    </div>
+  `;
+
+  if (!q.aiSolutionPromise) prefetchArithmeticAiSolution(q);
+
+  q.aiSolutionPromise.then(solutionMd => {
+    body.innerHTML = formatMarkdownToHTML(solutionMd || generateFallbackArithmeticExplanation(q));
+  }).catch(() => {
+    body.innerHTML = formatMarkdownToHTML(generateFallbackArithmeticExplanation(q));
+  });
+}
+
+function closeAiModal() {
+  const overlay = $('#aiModalOverlay');
+  if (overlay) overlay.classList.remove('show');
+}
+
+document.addEventListener('DOMContentLoaded', init);
+
+/* =====================================================================
+   DASHBOARD — load stats and update UI
+   ===================================================================== */
+function loadDashboard() {
+  if (!window.NST) return;
+  const s = window.NST.getStats();
+  const totalSolved = s.totalSolved;
+  const correct     = totalSolved - s.errors;
+  const accuracy    = totalSolved > 0 ? Math.round((correct / totalSolved) * 100) : 0;
+
+  const el = id => document.getElementById(id);
+  if (el('dashPoints'))   el('dashPoints').textContent   = s.points;
+  if (el('dashAccuracy')) el('dashAccuracy').textContent = accuracy + '%';
+  if (el('dashSolved'))   el('dashSolved').textContent   = totalSolved;
+  if (el('dashStreak'))   el('dashStreak').textContent   = s.maxStreak;
+  if (el('dashErrors'))   el('dashErrors').textContent   = s.errors;
+
+  // Leaderboard is unlocked for everyone
+  if (el('lbProgressFill'))  el('lbProgressFill').style.width = '100%';
+  if (el('lbProgressCount')) el('lbProgressCount').textContent = 'Unlocked';
+
+  const lbBtn = el('lbBtn');
+  if (lbBtn) {
+    lbBtn.classList.remove('locked');
+    lbBtn.classList.add('unlocked');
+    lbBtn.textContent = '🏆 Leaderboard';
+    lbBtn.title = 'View the Leaderboard';
+    if (el('lbProgressTxt')) el('lbProgressTxt').textContent = '🏆 Leaderboard is available for all learners!';
+  }
+}
+
+window.refreshDashboardUI = loadDashboard;
+
+/* =====================================================================
+   LEADERBOARD MODAL
+   ===================================================================== */
+function openLeaderboard() {
+  const overlay = document.getElementById('lbOverlay');
+  if (!overlay) return;
+  overlay.classList.add('show');
+  renderLeaderboard();
+}
+
+function closeLeaderboard() {
+  const overlay = document.getElementById('lbOverlay');
+  if (overlay) overlay.classList.remove('show');
+}
+
+async function renderLeaderboard() {
+  const body = document.getElementById('lbBody');
+  if (!body) return;
+  body.innerHTML = '<p class="lb-loading">Loading rankings…</p>';
+
+  let rows = [];
+  if (window.NST && window.NST.fetchLeaderboard) {
+    rows = await window.NST.fetchLeaderboard();
+  }
+
+  if (!rows || !rows.length) {
+    // Fallback: show current user only if database returns no records
+    const s = window.NST ? window.NST.getStats() : null;
+    const name = window.NST ? window.NST.getDisplayName() : 'You';
+    if (s && s.totalSolved > 0) {
+      rows = [{ name, points: s.points, totalSolved: s.totalSolved, errors: s.errors, _isMe: true }];
+    } else {
+      body.innerHTML = '<p class="lb-empty">No rankings yet. Be the first to score!</p>';
+      return;
+    }
+  }
+
+  // Get current user details for highlighting
+  let myUid = null;
+  let myEmail = null;
+  try {
+    if (window.firebase && window.firebase.auth) {
+      const u = window.firebase.auth().currentUser;
+      if (u) {
+        myUid = u.uid;
+        myEmail = u.email;
+      }
+    }
+  } catch (_) {}
+
+  const rankEmojis = ['🥇','🥈','🥉'];
+  const rankClasses = ['gold','silver','bronze'];
+
+  let html = `<table class="lb-table">
+    <thead><tr>
+      <th>#</th><th>Player</th><th>Points</th><th>Solved</th><th>Accuracy</th>
+    </tr></thead><tbody>`;
+
+  rows.forEach((r, i) => {
+    const rankNum  = i + 1;
+    const rankDisp = rankNum <= 3
+      ? `<span class="lb-rank ${rankClasses[i]}">${rankEmojis[i]} ${rankNum}</span>`
+      : `<span class="lb-rank">${rankNum}</span>`;
+    const solved   = Number(r.totalSolved || 0);
+    const errors   = Number(r.errors || 0);
+    const correct  = Math.max(0, solved - errors);
+    const acc      = solved > 0 ? Math.round((correct / solved) * 100) + '%' : '—';
+    const isMe     = r._isMe || (myUid && r.uid === myUid) || (myEmail && r.email === myEmail);
+    const rowClass = isMe ? ' class="lb-me"' : '';
+    const nameDisp = (r.name || (r.email ? r.email.split('@')[0] : 'Learner')) + (isMe ? ' <em>(You)</em>' : '');
+    html += `<tr${rowClass}>
+      <td>${rankDisp}</td>
+      <td>${nameDisp}</td>
+      <td><span class="lb-pts-val">${Number(r.points || 0)}</span></td>
+      <td>${solved}</td>
+      <td>${acc}</td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+  body.innerHTML = html;
+}
+
+/* =====================================================================
+   HISTORY MODAL HANDLERS
+   ===================================================================== */
+function openHistoryModal() {
+  const overlay = document.getElementById('historyOverlay');
+  if (!overlay) return;
+  overlay.classList.add('show');
+  renderHistoryList();
+}
+
+function closeHistoryModal() {
+  const overlay = document.getElementById('historyOverlay');
+  if (overlay) overlay.classList.remove('show');
+}
+
+function renderHistoryList() {
+  const body = document.getElementById('historyBody');
+  if (!body) return;
+  const history = window.NST ? window.NST.getHistory() : [];
+  if (!history || !history.length) {
+    body.innerHTML = '<p class="lb-empty">No solved questions yet. Practice some questions to fill your history!</p>';
+    return;
+  }
+  let html = `<div style="display:flex; flex-direction:column; gap:10px;">`;
+  history.forEach((item) => {
+    const isCorrect = item.isCorrect;
+    const badgeBg = isCorrect ? 'rgba(22,163,74,0.12)' : 'rgba(220,38,38,0.12)';
+    const badgeColor = isCorrect ? '#16a34a' : '#dc2626';
+    const ptsText = item.pointsDelta > 0 ? `+${item.pointsDelta} pts` : `${item.pointsDelta} pts`;
+    const ptsBg = item.pointsDelta > 0 ? 'rgba(245,158,11,0.15)' : 'rgba(220,38,38,0.12)';
+    const ptsColor = item.pointsDelta > 0 ? '#d97706' : '#dc2626';
+
+    html += `
+      <div style="background:var(--bg-soft); border:1px solid var(--border); border-radius:12px; padding:12px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        <div style="display:flex; flex-direction:column; gap:2px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:11px; font-weight:700; background:rgba(99,102,241,0.12); color:var(--primary); padding:2px 8px; border-radius:6px;">${item.type}</span>
+            <span style="font-size:13px; font-weight:700; color:var(--text);">${item.problem}</span>
+          </div>
+          <div style="font-size:12px; color:var(--muted); font-family:var(--font-mono); margin-top:3px;">
+            Entered: <b style="color:var(--text);">${item.userAnswer}</b> | Answer: <b style="color:var(--text);">${item.correctAnswer}</b>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:12px; font-weight:700; background:${ptsBg}; color:${ptsColor}; padding:3px 10px; border-radius:999px;">${ptsText}</span>
+          <span style="font-size:12px; font-weight:700; background:${badgeBg}; color:${badgeColor}; padding:3px 10px; border-radius:999px;">${isCorrect ? '✅ Correct' : '❌ Incorrect'}</span>
+        </div>
+      </div>
+    `;
+  });
+  html += `</div>`;
+  body.innerHTML = html;
+}
+
+/* =====================================================================
+   INIT EXTENSION — greeting + dashboard on page load
+   ===================================================================== */
+document.addEventListener('DOMContentLoaded', () => {
+  // Inject time greeting
+  if (window.NST) window.NST.injectTimeGreeting();
+
+  // Load the dashboard
+  loadDashboard();
+
+  // Leaderboard close button
+  const lbClose = document.getElementById('lbClose');
+  if (lbClose) lbClose.addEventListener('click', closeLeaderboard);
+
+  // Close on overlay background click
+  const lbOverlay = document.getElementById('lbOverlay');
+  if (lbOverlay) {
+    lbOverlay.addEventListener('click', (e) => {
+      if (e.target === lbOverlay) closeLeaderboard();
+    });
+  }
+
+  const historyOverlay = document.getElementById('historyOverlay');
+  if (historyOverlay) {
+    historyOverlay.addEventListener('click', (e) => {
+      if (e.target === historyOverlay) closeHistoryModal();
+    });
+  }
+
+  // Close on Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeLeaderboard();
+      closeHistoryModal();
+    }
+  });
+});
+
+</script>
+</body>
+</html>

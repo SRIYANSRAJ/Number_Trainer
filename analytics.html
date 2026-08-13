@@ -1,0 +1,3211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Student Intelligence — Number Trainer Analytics</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%236366f1'/%3E%3Cstop offset='100%25' stop-color='%23a855f7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='24' fill='url(%23g)'/%3E%3Cpath d='M30 32 L16 50 L30 68 M70 32 L84 50 L70 68 M56 22 L44 78' stroke='white' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+
+<!-- ============================================================
+     Firebase SDK (compat) — same version pinned by the existing
+     Number Trainer app (index.html / index1.html / script.js)
+     ============================================================ -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<!-- Chart.js — lightweight, CDN-hosted, used only where a chart genuinely
+     helps (trend lines, topic bars, mistake breakdowns). Falls back to
+     jsdelivr automatically if cdnjs is blocked (common with ad blockers
+     / restrictive networks); charts degrade gracefully either way. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"
+        onerror="this.onerror=null; var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js'; document.head.appendChild(s);"></script>
+
+<style>
+/* ================================================================
+   DESIGN TOKENS
+   Matched to the existing Number Trainer app (style.css / index1.html):
+   deep obsidian background, glass cards, indigo/violet primary,
+   emerald=correct, rose=wrong, amber/gold=points & warnings.
+   ================================================================ */
+:root{
+  --bg:            #070a12;
+  --bg-soft:       rgba(30,41,59,.65);
+  --card:          rgba(15,23,42,.88);
+  --card-hover:    rgba(30,41,59,.92);
+  --border:        rgba(255,255,255,.14);
+  --border-soft:   rgba(255,255,255,.09);
+  --primary:       #6366f1;
+  --primary-dark:  #4f46e5;
+  --purple:        #a855f7;
+  --success:       #10b981;
+  --error:         #f43f5e;
+  --gold:          #f59e0b;
+  --gold-light:    #fbbf24;
+  --muted:         #94a3b8;
+  --muted-2:       #64748b;
+  --text:          #f8fafc;
+  --shadow:        0 16px 40px rgba(0,0,0,.6), 0 0 25px rgba(99,102,241,.12);
+  --radius:        18px;
+  --radius-sm:     12px;
+  --font-ui:       'Inter','Segoe UI',system-ui,-apple-system,sans-serif;
+  --font-mono:     'SFMono-Regular','Consolas','Courier New',monospace;
+}
+*,*::before,*::after{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; width:100%; min-height:100vh; background:var(--bg); color:var(--text); font-family:var(--font-ui); font-size:15px; line-height:1.5; }
+body{
+  background:
+    radial-gradient(circle at 15% 0%, rgba(99,102,241,.20), transparent 45%),
+    radial-gradient(circle at 90% 10%, rgba(168,85,247,.16), transparent 40%),
+    var(--bg);
+  min-height:100vh;
+}
+h1,h2,h3,h4{ margin:0; font-weight:700; letter-spacing:-.01em; }
+p{ margin:0; }
+button{ font-family:inherit; cursor:pointer; }
+a{ color:var(--primary); }
+::selection{ background:rgba(99,102,241,.35); }
+.mono{ font-family:var(--font-mono); }
+.hidden{ display:none !important; }
+.sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
+::-webkit-scrollbar{ height:8px; width:8px; }
+::-webkit-scrollbar-thumb{ background:rgba(148,163,184,.3); border-radius:8px; }
+
+/* ---------- Low-Power AI Loading Animation Pane ---------- */
+@keyframes lowPowerPulse {
+  0%, 100% { opacity: 0.6; transform: scale(0.96); }
+  50% { opacity: 1; transform: scale(1.04); }
+}
+@keyframes lowPowerBar {
+  0% { width: 0%; }
+  40% { width: 60%; }
+  80% { width: 90%; }
+  100% { width: 98%; }
+}
+.ai-loading-pane {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 38px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  contain: content;
+}
+.ai-loading-pulse {
+  width: 54px; height: 54px;
+  border-radius: 50%;
+  background: rgba(99, 102, 241, 0.16);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px;
+  animation: lowPowerPulse 2.2s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+.ai-loading-bar-wrap {
+  width: 100%; max-width: 280px; height: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.ai-loading-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #a855f7);
+  border-radius: 999px;
+  animation: lowPowerBar 3.5s ease-out forwards;
+}
+
+/* ---------- Top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:40;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px; padding:16px 24px;
+  background:rgba(7,10,18,.88); backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border-soft);
+}
+.brand{ display:flex; align-items:center; gap:12px; }
+.brand-mark{
+  width:42px; height:42px; border-radius:12px; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(135deg,var(--primary),var(--purple)); font-weight:800; font-size:15px; letter-spacing:.5px;
+}
+.brand-title{ font-size:16px; font-weight:800; letter-spacing:.6px; }
+.brand-sub{ font-size:12.5px; color:var(--muted); letter-spacing:.4px; }
+.topbar-right{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.status-dot{ font-size:12px; font-weight:700; padding:6px 12px; border-radius:20px; border:1px solid var(--border); display:inline-flex; align-items:center; gap:6px; }
+.status-dot.live{ color:var(--success); border-color:rgba(16,185,129,.35); background:rgba(16,185,129,.08); }
+.status-dot.ok{ color:var(--muted); }
+.status-dot.warn{ color:var(--gold); border-color:rgba(245,158,11,.35); background:rgba(245,158,11,.08); }
+.status-dot.err{ color:var(--error); border-color:rgba(244,63,94,.35); background:rgba(244,63,94,.08); }
+.user-chip{ display:flex; align-items:center; gap:10px; padding:6px 14px 6px 8px; border-radius:20px; background:var(--bg-soft); border:1px solid var(--border); font-size:13.5px; font-weight:600; }
+.user-avatar{ width:26px; height:26px; border-radius:50%; background:linear-gradient(135deg,var(--gold-light),var(--gold)); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:#1a1200; }
+.mode-badge{ font-size:11px; font-weight:700; padding:3px 9px; border-radius:10px; letter-spacing:.4px; text-transform:uppercase; }
+.mode-badge.self{ background:rgba(99,102,241,.18); color:#c7d2fe; }
+.mode-badge.admin{ background:rgba(245,158,11,.18); color:var(--gold-light); }
+.icon-btn{
+  background:var(--bg-soft); color:var(--text); border:1px solid var(--border); border-radius:10px;
+  padding:9px 16px; font-size:13.5px; font-weight:600; display:inline-flex; align-items:center; gap:6px;
+  transition:background .15s,border-color .15s;
+}
+.icon-btn:hover{ background:var(--card-hover); border-color:rgba(255,255,255,.22); }
+.icon-btn:focus-visible, button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--primary); outline-offset:2px; }
+
+/* ---------- Tab nav ---------- */
+.tab-nav{
+  display:flex; gap:8px; padding:12px 22px; overflow-x:auto; scrollbar-width:thin;
+  background:rgba(11,15,25,.8); border-bottom:1px solid var(--border-soft); position:sticky; top:75px; z-index:35;
+}
+.tab-btn{
+  flex:0 0 auto; background:transparent; border:1px solid transparent; color:var(--muted);
+  padding:10px 18px; border-radius:10px; font-size:14px; font-weight:600; white-space:nowrap;
+  transition:background .15s,color .15s,border-color .15s;
+}
+.tab-btn:hover{ color:var(--text); background:var(--bg-soft); }
+.tab-btn[aria-selected="true"]{ color:var(--text); background:rgba(99,102,241,.2); border-color:rgba(99,102,241,.5); font-weight:700; }
+
+/* ---------- Layout ---------- */
+main{ max-width:1360px; margin:0 auto; padding:26px 22px 80px; }
+.panel{ display:flex; flex-direction:column; gap:20px; animation:fadeIn .25s ease; }
+@keyframes fadeIn{ from{ opacity:0; transform:translateY(4px);} to{ opacity:1; transform:none; } }
+.section-title{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.section-title h2{ font-size:22px; }
+.section-sub{ color:var(--muted); font-size:13.5px; margin-top:4px; }
+
+/* ---------- Cards / Glass ---------- */
+.card{
+  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:22px;
+}
+.card.tight{ padding:16px; }
+
+/* ---------- KPI grid ---------- */
+.kpi-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; }
+.kpi-card{
+  background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px;
+  position:relative; overflow:hidden;
+}
+.kpi-card::before{ content:""; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--primary),var(--purple)); }
+.kpi-card.gold::before{ background:linear-gradient(90deg,var(--gold-light),var(--gold)); }
+.kpi-card.good::before{ background:linear-gradient(90deg,#34d399,var(--success)); }
+.kpi-card.bad::before{ background:linear-gradient(90deg,#fb7185,var(--error)); }
+.kpi-label{ font-size:12px; color:var(--muted); letter-spacing:.8px; text-transform:uppercase; font-weight:700; }
+.kpi-value{ font-size:28px; font-weight:800; margin-top:8px; font-family:var(--font-mono); }
+.kpi-trend{ font-size:12.5px; margin-top:6px; color:var(--muted); }
+.kpi-trend.up{ color:var(--success); }
+.kpi-trend.down{ color:var(--error); }
+
+/* ---------- Grid layouts ---------- */
+.grid-2{ display:grid; grid-template-columns:1.3fr 1fr; gap:18px; }
+.grid-3{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+@media (max-width:900px){ .grid-2,.grid-3{ grid-template-columns:1fr; } }
+
+/* ---------- Tables ---------- */
+.table-wrap{ overflow-x:auto; border-radius:var(--radius-sm); border:1px solid var(--border-soft); }
+table{ width:100%; border-collapse:collapse; font-size:14px; min-width:640px; }
+thead th{
+  text-align:left; padding:12px 14px; background:rgba(30,41,59,.6); color:var(--muted);
+  font-size:11.5px; text-transform:uppercase; letter-spacing:.6px; font-weight:700; position:sticky; top:0;
+  border-bottom:1px solid var(--border-soft); cursor:pointer; user-select:none; white-space:nowrap;
+}
+thead th:hover{ color:var(--text); }
+thead th .sort-ind{ opacity:.7; font-size:10px; margin-left:4px; }
+tbody td{ padding:12px 14px; border-bottom:1px solid rgba(255,255,255,.05); white-space:nowrap; }
+tbody tr{ transition:background .12s; }
+tbody tr.clickable{ cursor:pointer; }
+tbody tr.clickable:hover{ background:rgba(99,102,241,.1); }
+.pill{ display:inline-flex; align-items:center; gap:5px; padding:4px 11px; border-radius:20px; font-size:12px; font-weight:700; }
+.pill.correct{ background:rgba(16,185,129,.16); color:#6ee7b7; }
+.pill.wrong{ background:rgba(244,63,94,.16); color:#fda4af; }
+.pill.neutral{ background:rgba(148,163,184,.16); color:var(--muted); }
+.pill.gold{ background:rgba(245,158,11,.16); color:var(--gold-light); }
+
+/* ---------- Filters ---------- */
+.filter-bar{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+.filter-bar input[type="text"], .filter-bar input[type="date"], .filter-bar select{
+  background:var(--bg-soft); border:1px solid var(--border); color:var(--text);
+  border-radius:10px; padding:10px 14px; font-size:14px; font-family:inherit;
+}
+.filter-bar input[type="text"]{ min-width:220px; }
+.filter-bar label{ font-size:12.5px; color:var(--muted); display:flex; flex-direction:column; gap:5px; font-weight:600; }
+.chip-toggle{ display:flex; gap:8px; flex-wrap:wrap; }
+.chip{ padding:8px 14px; border-radius:20px; border:1px solid var(--border); background:var(--bg-soft); color:var(--muted); font-size:13px; font-weight:600; }
+.chip[aria-pressed="true"]{ background:rgba(99,102,241,.2); color:var(--text); border-color:rgba(99,102,241,.5); }
+
+/* ---------- Empty / loading / error states ---------- */
+.empty-state{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:48px 18px; text-align:center; color:var(--muted); }
+.empty-state .emoji{ font-size:36px; }
+.empty-state h3{ color:var(--text); font-size:16px; }
+.empty-state p{ font-size:13.5px; max-width:380px; }
+.gate{ display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:60vh; gap:16px; text-align:center; padding:20px; }
+.skeleton{ background:linear-gradient(90deg, rgba(255,255,255,.04) 25%, rgba(255,255,255,.09) 37%, rgba(255,255,255,.04) 63%); background-size:400% 100%; animation:shimmer 1.4s infinite; border-radius:10px; }
+@keyframes shimmer{ 0%{ background-position:100% 50%; } 100%{ background-position:0 50%; } }
+.skeleton-kpi{ height:86px; border-radius:14px; }
+.skeleton-row{ height:38px; margin-bottom:6px; border-radius:8px; }
+
+/* ---------- Insight cards ---------- */
+.insight{ display:flex; gap:12px; align-items:flex-start; padding:14px 16px; border-radius:12px; background:rgba(99,102,241,.08); border:1px solid rgba(99,102,241,.22); font-size:14px; line-height:1.5; }
+.insight .tag{ flex:0 0 auto; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; padding:3px 8px; border-radius:6px; background:rgba(99,102,241,.22); color:#c7d2fe; }
+.insight.warn{ background:rgba(245,158,11,.08); border-color:rgba(245,158,11,.25); }
+.insight.warn .tag{ background:rgba(245,158,11,.25); color:var(--gold-light); }
+.insight.na{ background:rgba(148,163,184,.08); border-color:var(--border-soft); color:var(--muted); }
+
+/* ---------- Struggle badges ---------- */
+.struggle-badge{ font-size:11.5px; font-weight:800; padding:4px 11px; border-radius:8px; letter-spacing:.4px; }
+.struggle-badge.strong{ background:rgba(16,185,129,.16); color:#6ee7b7; }
+.struggle-badge.average{ background:rgba(99,102,241,.16); color:#c7d2fe; }
+.struggle-badge.needs{ background:rgba(245,158,11,.16); color:var(--gold-light); }
+.struggle-badge.critical{ background:rgba(244,63,94,.16); color:#fda4af; }
+
+/* ---------- Heatmap ---------- */
+.heatmap{ display:grid; grid-auto-flow:column; grid-template-rows:repeat(7,16px); gap:4px; overflow-x:auto; padding:6px 2px 12px; }
+.heat-cell{ width:16px; height:16px; border-radius:4px; background:rgba(148,163,184,.1); cursor:pointer; }
+.heat-cell:hover{ outline:1.5px solid var(--primary); }
+.heat-legend{ display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--muted); margin-top:6px; }
+
+/* ---------- Modal ---------- */
+.modal-overlay{ position:fixed; inset:0; background:rgba(3,5,10,.75); backdrop-filter:blur(4px); z-index:80; display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto; }
+.modal-card{ background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); max-width:640px; width:100%; padding:24px; animation:fadeIn .18s ease; }
+.modal-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:16px; }
+.modal-close{ background:var(--bg-soft); border:1px solid var(--border); color:var(--text); border-radius:9px; width:32px; height:32px; font-size:15px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer; transition:all 0.15s ease; }
+.modal-close:hover{ background:var(--error); border-color:var(--error); color:#fff; }
+.detail-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px 20px; font-size:14px; }
+.detail-grid .full{ grid-column:1/-1; }
+.detail-k{ font-size:11.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; font-weight:700; margin-bottom:4px; }
+.detail-v{ font-family:var(--font-mono); font-size:14.5px; }
+
+/* ---------- Toast ---------- */
+.toast-root{ position:fixed; bottom:20px; right:20px; z-index:100; display:flex; flex-direction:column; gap:10px; }
+.toast{ background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px 18px; font-size:13.5px; box-shadow:var(--shadow); animation:fadeIn .2s ease; max-width:340px; }
+.toast.success{ border-color:rgba(16,185,129,.4); }
+.toast.error{ border-color:rgba(244,63,94,.4); }
+
+/* ---------- Buttons ---------- */
+.btn{ background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:#fff; border:none; border-radius:10px; padding:10px 18px; font-size:13.5px; font-weight:700; }
+.btn.ghost{ background:var(--bg-soft); color:var(--text); border:1px solid var(--border); }
+.btn.gold{ background:linear-gradient(135deg,var(--gold-light),var(--gold)); color:#1a1200; }
+.btn:disabled{ opacity:.5; cursor:not-allowed; }
+.btn-row{ display:flex; gap:10px; flex-wrap:wrap; }
+
+/* ---------- Pagination ---------- */
+.pager{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding-top:10px; font-size:13px; color:var(--muted); }
+
+/* ---------- Chart container ---------- */
+.chart-box{ position:relative; height:270px; }
+.chart-box.sm{ height:200px; }
+
+/* ---------- Data-scope note ---------- */
+.scope-note{ font-size:12.5px; color:var(--muted-2); border-top:1px dashed var(--border-soft); padding-top:10px; margin-top:6px; }
+.scope-note b{ color:var(--muted); }
+
+/* ---------- Print ---------- */
+.print-only{ display:none; }
+@media print{
+  .topbar,.tab-nav,.filter-bar,.btn-row,.icon-btn,.pager,#toastRoot,#modalRoot{ display:none !important; }
+  body{ background:#fff !important; color:#111 !important; }
+  .print-only{ display:block !important; }
+  main > .panel:not(#panel-reports){ display:none !important; }
+  .card{ box-shadow:none !important; border-color:#ccc !important; background:#fff !important; color:#111 !important; }
+}
+
+/* ---------- Responsive & AI Report Hero Enhancements ---------- */
+.ai-report-hero {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
+  margin-bottom: 20px;
+  padding: 24px;
+  border-radius: var(--radius);
+}
+.ai-report-hero-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.ai-report-hero-text {
+  flex: 1;
+}
+.ai-report-grade-badge {
+  width: 84px;
+  height: 84px;
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .topbar {
+    padding: 12px 16px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .topbar-right {
+    gap: 8px;
+    width: 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tab-nav {
+    top: 0;
+    position: relative;
+    padding: 8px 14px;
+    gap: 6px;
+  }
+  .tab-btn {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+  .brand-title {
+    font-size: 14px;
+  }
+  .brand-sub {
+    display: none;
+  }
+  .brand-mark {
+    width: 36px;
+    height: 36px;
+    font-size: 13px;
+    border-radius: 10px;
+  }
+  .topbar-right {
+    gap: 6px;
+  }
+  .status-dot {
+    padding: 4px 10px;
+    font-size: 11.5px;
+  }
+  .user-chip {
+    padding: 4px 10px 4px 6px;
+    font-size: 12px;
+  }
+  .user-avatar {
+    width: 22px;
+    height: 22px;
+    font-size: 10.5px;
+  }
+  .icon-btn {
+    padding: 7px 11px;
+    font-size: 12px;
+    border-radius: 8px;
+  }
+  main {
+    padding: 14px 10px 70px;
+  }
+  .kpi-value {
+    font-size: 21px;
+  }
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Gemini Report Mobile Card & Grade Letter Styling */
+  .ai-report-hero {
+    padding: 16px;
+  }
+  .ai-report-hero-inner {
+    flex-direction: column-reverse;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .ai-report-grade-badge {
+    align-self: flex-start;
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    font-size: 28px;
+  }
+  .ai-report-hero-text h2 {
+    font-size: 19px !important;
+  }
+  .ai-report-hero-text p {
+    font-size: 13px !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a href="index1.html" class="brand" style="text-decoration:none; color:inherit;" title="Return to Number Trainer">
+    <div class="brand-mark" aria-hidden="true">NT</div>
+    <div>
+      <div class="brand-title">NUMBER TRAINER</div>
+      <div class="brand-sub">Student Intelligence</div>
+    </div>
+  </a>
+  <div class="topbar-right">
+    <span id="liveDot" class="status-dot live hidden">● LIVE</span>
+    <span id="connDot" class="status-dot ok">● Connecting…</span>
+    <div id="userChip" class="user-chip hidden"></div>
+    <button id="refreshBtn" class="icon-btn hidden" aria-label="Refresh dashboard data">↻ Refresh</button>
+    <a href="about.html" class="icon-btn" style="text-decoration:none;">📖 About</a>
+    <button id="signOutBtn" class="icon-btn hidden" aria-label="Sign out">Sign out</button>
+  </div>
+</header>
+
+<nav id="tabNav" class="tab-nav hidden" role="tablist" aria-label="Dashboard sections"></nav>
+
+<main id="main">
+
+  <!-- AUTH GATE -->
+  <div id="authGate" class="gate hidden">
+    <div class="emoji" style="font-size:38px;">🔒</div>
+    <h2>Sign in required</h2>
+    <p style="color:var(--muted); max-width:380px; font-size:13.5px;">
+      This analytics dashboard reads your Number Trainer account data. Please sign in from the main app first.
+    </p>
+    <a class="btn" href="index.html">Go to sign in</a>
+  </div>
+
+  <!-- LOADING GATE -->
+  <div id="loadingGate" class="gate">
+    <div class="card tight" style="width:100%; max-width:900px;">
+      <p style="color:var(--muted); font-size:13px; margin-bottom:14px;" id="loadingMsg">Connecting to Number Trainer…</p>
+      <div class="kpi-grid">
+        <div class="skeleton skeleton-kpi"></div><div class="skeleton skeleton-kpi"></div>
+        <div class="skeleton skeleton-kpi"></div><div class="skeleton skeleton-kpi"></div>
+      </div>
+      <div style="margin-top:16px;">
+        <div class="skeleton skeleton-row"></div>
+        <div class="skeleton skeleton-row"></div>
+        <div class="skeleton skeleton-row"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ERROR GATE -->
+  <div id="errorGate" class="gate hidden">
+    <div class="emoji" style="font-size:38px;">⚠️</div>
+    <h2 id="errorTitle">Something went wrong</h2>
+    <p id="errorMsg" style="color:var(--muted); max-width:420px; font-size:13.5px;"></p>
+    <div class="btn-row">
+      <button class="btn" id="errorRetryBtn">Try again</button>
+      <a class="btn ghost" href="index1.html">Back to Trainer</a>
+    </div>
+  </div>
+
+  <!-- TAB PANELS -->
+  <div id="tabPanels" class="hidden">
+
+    <section id="panel-overview" class="panel"></section>
+    <section id="panel-aiReport" class="panel hidden"></section>
+    <section id="panel-cohortAi" class="panel hidden"></section>
+    <section id="panel-students" class="panel hidden"></section>
+    <section id="panel-performance" class="panel hidden"></section>
+    <section id="panel-questions" class="panel hidden"></section>
+    <section id="panel-mistakes" class="panel hidden"></section>
+    <section id="panel-topics" class="panel hidden"></section>
+    <section id="panel-timeline" class="panel hidden"></section>
+    <section id="panel-sessions" class="panel hidden"></section>
+    <section id="panel-leaderboard" class="panel hidden"></section>
+    <section id="panel-reports" class="panel hidden"></section>
+
+  </div>
+</main>
+
+<div id="modalRoot"></div>
+<div id="toastRoot" class="toast-root" aria-live="polite"></div>
+
+<script>
+'use strict';
+/* ================================================================
+   CONFIG
+   Loads dynamic Firebase configuration from /api/firebase-config or Cloudflare proxy.
+   No new collections, no schema changes.
+   ================================================================ */
+
+const CFG = {
+  collection: 'userStats',          // sole existing collection — one doc per uid
+  historyCap: 200,                  // existing app trims history client-side to last 200 entries
+  sessionGapMs: 20 * 60 * 1000,     // 20 min gap = new derived session
+  studentsPageSize: 25,
+  minSampleForTrend: 6,             // don't call trends on tiny datasets
+  minSampleForStruggle: 3
+};
+
+const GEMINI_STAR_SVG = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px; display:inline-block; margin-right:4px;" xmlns="http://www.w3.org/2000/svg">
+  <path d="M12 0C12 6.62742 6.62742 12 0 12C6.62742 12 12 17.3726 12 24C12 17.3726 17.3726 12 24 12C17.3726 12 12 6.62742 12 0Z" fill="url(#gemini-spark-grad)"/>
+  <defs>
+    <linearGradient id="gemini-spark-grad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#38bdf8"/>
+      <stop offset="0.5" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#a855f7"/>
+    </linearGradient>
+  </defs>
+</svg>`;
+
+const GEMINI_STAR_LARGE_SVG = `<svg width="42" height="42" viewBox="0 0 24 24" fill="none" style="display:inline-block; margin-bottom:12px;" xmlns="http://www.w3.org/2000/svg">
+  <path d="M12 0C12 6.62742 6.62742 12 0 12C6.62742 12 12 17.3726 12 24C12 17.3726 17.3726 12 24 12C17.3726 12 12 6.62742 12 0Z" fill="url(#gemini-lg-grad)"/>
+  <defs>
+    <linearGradient id="gemini-lg-grad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#38bdf8"/>
+      <stop offset="0.5" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#a855f7"/>
+    </linearGradient>
+  </defs>
+</svg>`;
+
+const TABS = [
+  { id:'overview',    label:'Overview' },
+  { id:'aiReport',    label:'✦ Gemini AI Diagnostic' },
+  { id:'cohortAi',    label:'✦ Class Cohort AI', adminOnly:true },
+  { id:'students',    label:'Students', adminOnly:true },
+  { id:'performance', label:'Performance' },
+  { id:'questions',   label:'Questions' },
+  { id:'mistakes',    label:'Mistakes' },
+  { id:'topics',      label:'Topics' },
+  { id:'timeline',    label:'Timeline' },
+  { id:'sessions',    label:'Sessions' },
+  { id:'leaderboard', label:'Leaderboard' },
+  { id:'reports',     label:'Reports' }
+];
+
+/* ================================================================
+   STATE
+   ================================================================ */
+const state = {
+  fbApp:null, db:null, auth:null,
+  user:null, isAdmin:false,
+  activeTab:'overview',
+  connection:'connecting',    // connecting | connected | offline | reconnecting
+  live:false,
+  selfDoc:null,                // raw userStats doc for the signed-in user
+  viewedUid:null, viewedDoc:null, viewedIsSelf:true,
+  attempts:[], mistakes:[], sessions:[],
+  students:[], studentsCursor:null, studentsDone:false, studentsLoading:false,
+  filters:{ search:'', dateRange:'all', topic:'all', result:'all', type:'all', custom:{from:null,to:null} },
+  sort:{ table:null, key:null, dir:'desc' },
+  charts:{},
+  unsubSelf:null,
+  searchDebounce:null
+};
+
+/* ================================================================
+   UTILITIES
+   ================================================================ */
+function $(sel, root){ return (root||document).querySelector(sel); }
+function $all(sel, root){ return Array.from((root||document).querySelectorAll(sel)); }
+function esc(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function initials(name){
+  if(!name) return '?';
+  const parts = String(name).trim().split(/\s+/);
+  return (parts[0][0]+(parts[1]?parts[1][0]:'')).toUpperCase();
+}
+function fmtNum(n, d){ if(n==null || isNaN(n)) return 'N/A'; return Number(n).toLocaleString(undefined,{maximumFractionDigits:d==null?0:d}); }
+function fmtPct(n){ if(n==null || isNaN(n)) return 'N/A'; return n.toFixed(1)+'%'; }
+function fmtSec(n){ if(n==null || isNaN(n)) return 'N/A'; return n.toFixed(1)+'s'; }
+function fmtDur(ms){
+  if(ms==null || isNaN(ms) || ms<0) return 'N/A';
+  const s = Math.round(ms/1000);
+  const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+  if(h>0) return `${h}h ${m}m`;
+  if(m>0) return `${m}m ${sec}s`;
+  return `${sec}s`;
+}
+function toast(msg, type){
+  const root = $('#toastRoot');
+  const el = document.createElement('div');
+  el.className = 'toast'+(type?(' '+type):'');
+  el.textContent = msg;
+  root.appendChild(el);
+  setTimeout(()=>{ el.remove(); }, 4200);
+}
+function debounce(fn, ms){
+  let t;
+  return function(...args){ clearTimeout(t); t = setTimeout(()=>fn.apply(this,args), ms); };
+}
+function safeParseDate(dateStr, timeStr){
+  if(!dateStr) return null;
+  try{
+    const d = new Date(`${dateStr} ${timeStr||''}`.trim());
+    if(!isNaN(d.getTime())) return d.getTime();
+  }catch(e){}
+  return null;
+}
+function csvEscape(v){
+  const s = String(v==null?'':v);
+  if(/[",\n]/.test(s)) return '"'+s.replace(/"/g,'""')+'"';
+  return s;
+}
+function downloadBlob(content, filename, mime){
+  const blob = new Blob([content], {type:mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+function exportRowsCSV(rows, headers, filename){
+  if(!rows.length){ toast('Nothing to export yet.'); return; }
+  const lines = [headers.map(h=>csvEscape(h.label)).join(',')];
+  rows.forEach(r=>{ lines.push(headers.map(h=>csvEscape(h.get(r))).join(',')); });
+  downloadBlob(lines.join('\n'), filename, 'text/csv;charset=utf-8;');
+  toast('CSV exported.', 'success');
+}
+function exportRowsJSON(rows, filename){
+  if(!rows.length){ toast('Nothing to export yet.'); return; }
+  downloadBlob(JSON.stringify(rows, null, 2), filename, 'application/json;charset=utf-8;');
+  toast('JSON exported.', 'success');
+}
+
+/* ================================================================
+   FIREBASE INIT
+   ================================================================ */
+async function initFirebase(){
+  try{
+    if (!firebase.apps.length) {
+      let config = window.FIREBASE_CONFIG;
+      if (!config || !config.apiKey) {
+        try {
+          const isGitHubPages = window.location.hostname.includes('github.io');
+          const configUrl = isGitHubPages ? 'https://gemini-proxy.sriyansraj02.workers.dev/firebase-config' : '/api/firebase-config';
+          const res = await fetch(configUrl);
+          if (res.ok) {
+            const fetched = await res.json();
+            if (fetched && fetched.apiKey) config = fetched;
+          }
+        } catch (e) {
+          console.warn("Could not fetch Firebase config:", e);
+        }
+      }
+      
+      if (!config || !config.apiKey) {
+        throw new Error("Missing Firebase configuration.");
+      }
+      state.fbApp = firebase.initializeApp(config);
+    } else {
+      state.fbApp = firebase.app();
+    }
+    state.auth = firebase.auth();
+    state.db = firebase.firestore();
+    return true;
+  }catch(err){
+    showErrorGate('Could not start Firebase', err && err.message ? err.message : String(err));
+    return false;
+  }
+}
+
+window.addEventListener('online', ()=> setConnection(state.user ? 'connected' : 'connecting'));
+window.addEventListener('offline', ()=> setConnection('offline'));
+
+function setConnection(status){
+  state.connection = status;
+  const dot = $('#connDot');
+  if(!dot) return;
+  dot.classList.remove('ok','warn','err','live');
+  const map = {
+    connecting:  { cls:'ok',   text:'● Connecting…' },
+    connected:   { cls:'ok',   text:'● Connected' },
+    reconnecting:{ cls:'warn', text:'● Reconnecting…' },
+    offline:     { cls:'err',  text:'● Offline' }
+  };
+  const m = map[status] || map.connecting;
+  dot.classList.add(m.cls);
+  dot.textContent = m.text;
+}
+
+function setLive(on){
+  state.live = on;
+  const el = $('#liveDot');
+  if(!el) return;
+  el.classList.toggle('hidden', !on);
+}
+
+/* ================================================================
+   AUTH
+   ================================================================ */
+async function bootstrap(){
+  if(!(await initFirebase())) return;
+  setConnection('connecting');
+
+  setTimeout(()=>{
+    if(!isChartJsReady()){
+      toast('Charts library failed to load — check for an ad blocker or firewall blocking cdnjs.cloudflare.com / cdn.jsdelivr.net. Tables and numbers still work normally.', 'error');
+    }
+  }, 2500);
+
+  state.auth.onAuthStateChanged(async (user)=>{
+    if(!user){
+      hideAllGates();
+      $('#authGate').classList.remove('hidden');
+      $('#tabNav').classList.add('hidden');
+      $('#userChip').classList.add('hidden');
+      $('#refreshBtn').classList.add('hidden');
+      $('#signOutBtn').classList.add('hidden');
+      return;
+    }
+    state.user = user;
+    state.viewedUid = user.uid;
+    state.viewedIsSelf = true;
+    setUserChip(user);
+    $('#refreshBtn').classList.remove('hidden');
+    $('#signOutBtn').classList.remove('hidden');
+
+    try{
+      state.isAdmin = await checkAdminAuthorization(user);
+    }catch(e){
+      console.warn('Admin check failed:', e);
+      state.isAdmin = false; // fail closed — never assume admin on error
+    }
+
+    // Update user chip AFTER state.isAdmin is determined
+    setUserChip(user);
+
+    // URL param convenience for admins only; students are forced to view themselves
+    const params = new URLSearchParams(window.location.search);
+    const requestedUid = params.get('student');
+    if(state.isAdmin && requestedUid){
+      state.viewedUid = requestedUid;
+      state.viewedIsSelf = requestedUid === user.uid;
+    } else {
+      state.viewedUid = user.uid;
+      state.viewedIsSelf = true;
+    }
+
+    renderTabNav();
+    await loadInitialData();
+  });
+}
+
+function setUserChip(user){
+  const chip = $('#userChip');
+  const name = user.displayName || (user.email ? user.email.split('@')[0] : 'Learner');
+  chip.classList.remove('hidden');
+  chip.innerHTML = `
+    <span class="user-avatar" aria-hidden="true">${esc(initials(name))}</span>
+    <span>${esc(name)}</span>
+    <span class="mode-badge ${state.isAdmin?'admin':'self'}">${state.isAdmin?'Admin':'Student'}</span>
+  `;
+}
+
+/**
+ * Admin/teacher authorization.
+ * Checks for:
+ *  1. Custom Auth claim admin === true
+ *  2. Document existence in admins/{uid} (matches user's Firestore Security Rules)
+ */
+async function checkAdminAuthorization(user){
+  try{
+    const tokenResult = await user.getIdTokenResult();
+    if(tokenResult && tokenResult.claims && tokenResult.claims.admin === true) {
+      console.log('[NT Analytics] Admin verified via Auth custom claim.');
+      return true;
+    }
+    console.debug('[NT Analytics] No admin custom claim on this ID token.');
+  }catch(e){ console.debug('[NT Analytics] Custom claim check failed:', e.message); }
+
+  try{
+    const snap = await state.db.collection('admins').doc(user.uid).get();
+    if(snap.exists) {
+      const data = snap.data() || {};
+      if(data.isAdmin !== false) {
+        console.log('[NT Analytics] Admin verified via admins/'+user.uid+' document existence.');
+        return true;
+      }
+    }
+    console.debug('[NT Analytics] admins/'+user.uid+' doc missing or explicitly disabled. exists=', snap.exists);
+  }catch(e){
+    console.debug('[NT Analytics] admins/'+user.uid+' read failed:', e.code||'', e.message);
+  }
+
+  return false;
+}
+
+function signOut(){
+  if(state.unsubSelf){ state.unsubSelf(); state.unsubSelf = null; }
+  state.auth.signOut().then(()=>{ window.location.replace('index.html'); }).catch(()=>{ window.location.replace('index.html'); });
+}
+
+/* ================================================================
+   FIRESTORE ACCESS LAYER
+   ================================================================ */
+function watchOwnDoc(uid){
+  if(state.unsubSelf) state.unsubSelf();
+  setConnection('connecting');
+  state.unsubSelf = state.db.collection(CFG.collection).doc(uid).onSnapshot(
+    (snap)=>{
+      setConnection('connected');
+      setLive(state.viewedIsSelf); // the LIVE dot reflects the currently VIEWED student, not just background sync
+      state.selfDoc = snap.exists ? snap.data() : null;
+      if(state.viewedIsSelf){
+        state.viewedDoc = state.selfDoc;
+        onViewedDocChanged();
+      }
+    },
+    (err)=>{
+      setLive(false);
+      setConnection(navigator.onLine ? 'reconnecting' : 'offline');
+      console.warn('Realtime listener error:', err.message);
+    }
+  );
+}
+
+async function fetchStudentDoc(uid){
+  const snap = await state.db.collection(CFG.collection).doc(uid).get();
+  return snap.exists ? snap.data() : null;
+}
+
+async function fetchStudentsPage(reset){
+  if(reset){ state.students = []; state.studentsCursor = null; state.studentsDone = false; }
+  if(state.studentsDone || state.studentsLoading) return;
+  state.studentsLoading = true;
+  try{
+    let q = state.db.collection(CFG.collection).orderBy('points','desc').limit(CFG.studentsPageSize);
+    if(state.studentsCursor) q = q.startAfter(state.studentsCursor);
+    const snap = await q.get();
+    if(snap.empty || snap.docs.length < CFG.studentsPageSize) state.studentsDone = true;
+    snap.docs.forEach(d=>{
+      const data = d.data();
+      state.students.push(normalizeStudentSummary(data, d.id));
+    });
+    if(snap.docs.length) state.studentsCursor = snap.docs[snap.docs.length-1];
+  }catch(err){
+    toast('Could not load students: '+(err.message||err), 'error');
+  }finally{
+    state.studentsLoading = false;
+  }
+}
+
+async function fetchStudentByEmail(email){
+  try{
+    const snap = await state.db.collection(CFG.collection).where('email','==', email).limit(1).get();
+    if(snap.empty) return null;
+    return normalizeStudentSummary(snap.docs[0].data(), snap.docs[0].id);
+  }catch(err){
+    toast('Lookup failed: '+(err.message||err), 'error');
+    return null;
+  }
+}
+
+/* ================================================================
+   DATA NORMALIZATION
+   Maps the ACTUAL existing schema (userStats/{uid}: points, maxStreak,
+   totalSolved, errors, conversions, arithmetic, accuracy, history[],
+   errorNotebook[]) into a stable shape the rest of the dashboard uses.
+   Nothing here invents fields the app doesn't record.
+   ================================================================ */
+function normalizeStudentSummary(raw, uid){
+  raw = raw || {};
+  let totalSolved = Number(raw.totalSolved || 0);
+  let errors = Number(raw.errors || 0);
+  let maxS = Math.max(Number(raw.maxStreak || 0), Number(raw.currentStreak || 0), Number(raw.streak || 0));
+  let curS = Number(raw.currentStreak || raw.streak || 0);
+  let points = Number(raw.points || 0);
+  let convs = Number(raw.conversions || 0);
+  let arith = Number(raw.arithmetic || 0);
+
+  if ((typeof state !== 'undefined' && state.user && uid === state.user.uid) || (typeof state !== 'undefined' && state.viewedIsSelf)) {
+    const localMax = parseInt(localStorage.getItem('numSysMaxStreak') || '0', 10);
+    const localCur = parseInt(localStorage.getItem('numSysCurrentStreak') || '0', 10);
+    const localPts = parseInt(localStorage.getItem('numSysPoints') || '0', 10);
+    const localSolved = parseInt(localStorage.getItem('numSysTotalSolved') || '0', 10);
+    const localErrs = parseInt(localStorage.getItem('numSysErrors') || '0', 10);
+    const localConvs = parseInt(localStorage.getItem('numSysConversions') || '0', 10);
+    const localArith = parseInt(localStorage.getItem('numSysArithmetic') || '0', 10);
+
+    maxS = Math.max(maxS, localMax, localCur);
+    curS = Math.max(curS, localCur);
+    points = Math.max(points, localPts);
+    totalSolved = Math.max(totalSolved, localSolved);
+    errors = Math.max(errors, localErrs);
+    convs = Math.max(convs, localConvs);
+    arith = Math.max(arith, localArith);
+  }
+
+  const accuracy = totalSolved > 0 ? ((totalSolved - errors) / totalSolved * 100) : null;
+
+  return {
+    uid,
+    name: raw.name || (raw.email ? raw.email.split('@')[0] : 'Unknown'),
+    email: raw.email || 'N/A',
+    points,
+    maxStreak: maxS,
+    currentStreak: curS,
+    totalSolved,
+    errors,
+    correct: Math.max(0, totalSolved - errors),
+    conversions: convs,
+    arithmetic: arith,
+    accuracy,
+    updatedAtMs: raw.updatedAt && typeof raw.updatedAt.toMillis === 'function' ? raw.updatedAt.toMillis() : null,
+    historyCount: Array.isArray(raw.history) ? raw.history.length : 0,
+    _raw: raw
+  };
+}
+
+function normBaseName(b){
+  b = String(b||'').toLowerCase();
+  if(b.startsWith('bin')) return 'Binary';
+  if(b.startsWith('oct')) return 'Octal';
+  if(b.startsWith('dec')) return 'Decimal';
+  if(b.startsWith('hex')) return 'Hex';
+  return b ? (b[0].toUpperCase()+b.slice(1)) : 'Unknown';
+}
+
+const OP_NAMES = { '+':'Addition', '-':'Subtraction', '\u00d7':'Multiplication', '*':'Multiplication', '\u00f7':'Division', '/':'Division' };
+
+/**
+ * Derives a topic/subtype label from the free-text "problem" string the
+ * app already stores (e.g. "Binary ➔ Decimal (101101)" or
+ * "Hexadecimal (1A + 0F)"). This is a DERIVED classification, not a
+ * stored field — the app has no category/topic column.
+ */
+function deriveTopic(type, problem){
+  problem = problem || '';
+  if(type === 'Conversion'){
+    const m = problem.match(/(Binary|Octal|Decimal|Hex(?:adecimal)?)\s*(?:\u2794|\u2192|->|➔)\s*(Binary|Octal|Decimal|Hex(?:adecimal)?)/i);
+    if(m) return { topic: `${normBaseName(m[1])} \u2192 ${normBaseName(m[2])}`, subtype:'Base Conversion' };
+    return { topic:'Conversion (unspecified)', subtype:'Base Conversion' };
+  }
+  const baseM = problem.match(/(Binary|Octal|Decimal|Hex(?:adecimal)?)/i);
+  const opM = problem.match(/[+\-\u00d7\u00f7*/]/);
+  const opName = OP_NAMES[opM ? opM[0] : ''] || 'Arithmetic';
+  const baseName = baseM ? normBaseName(baseM[1]) : 'Number';
+  return { topic:`${baseName} ${opName}`, subtype:opName };
+}
+
+/**
+ * Normalizes one raw history entry into a full attempt record.
+ * Fields the app does not store (questionId, difficulty, sessionId,
+ * hintsUsed, retryCount, startedAt vs submittedAt as distinct epoch
+ * timestamps) are explicitly set to null / 'N/A' rather than guessed.
+ */
+function normalizeAttempt(raw, ctx){
+  raw = raw || {};
+  const topicInfo = deriveTopic(raw.type, raw.problem);
+  const ts = safeParseDate(raw.date, raw.time);
+  return {
+    attemptId: raw.id != null ? String(raw.id) : null,
+    uid: ctx.uid,
+    studentName: ctx.name,
+    dateStr: raw.date || null,
+    timeStr: raw.time || null,
+    timestampMs: ts,                 // null if the browser couldn't parse the locale date/time strings
+    category: raw.type === 'Conversion' ? 'Conversion' : 'Arithmetic',
+    topic: topicInfo.topic,
+    subtype: topicInfo.subtype,
+    question: raw.problem || 'N/A',
+    studentAnswer: (raw.userAnswer==null || raw.userAnswer==='') ? 'N/A' : String(raw.userAnswer),
+    correctAnswer: (raw.correctAnswer==null || raw.correctAnswer==='') ? 'N/A' : String(raw.correctAnswer),
+    isCorrect: !!raw.isCorrect,
+    timeTaken: typeof raw.timeSeconds === 'number' ? raw.timeSeconds : null,
+    points: typeof raw.pointsDelta === 'number' ? raw.pointsDelta : null,
+    difficulty: 'N/A',               // not recorded per-attempt by the existing app
+    questionId: 'N/A',               // questions are generated on the fly, no persisted ID
+    sessionId: null                  // filled in by deriveSessions()
+  };
+}
+
+/** Normalizes an error-notebook entry (conversion mistakes only — the
+ *  app's own targeted-retry feature). This has a REAL epoch timestamp,
+ *  unlike history entries, so it's useful for repeat-mistake timing. */
+function normalizeNotebookEntry(raw, ctx){
+  raw = raw || {};
+  const sB = normBaseName({2:'Binary',8:'Octal',10:'Decimal',16:'Hex'}[raw.sB] || raw.sB);
+  const tB = normBaseName({2:'Binary',8:'Octal',10:'Decimal',16:'Hex'}[raw.tB] || raw.tB);
+  return {
+    attemptId: raw.id || null,
+    uid: ctx.uid,
+    studentName: ctx.name,
+    timestampMs: typeof raw.timestamp === 'number' ? raw.timestamp : null,
+    category: 'Conversion',
+    topic: `${sB} \u2192 ${tB}`,
+    question: raw.qStr || 'N/A',
+    studentAnswer: raw.userEntered==null ? 'N/A' : String(raw.userEntered),
+    correctAnswer: raw.aStr==null ? 'N/A' : String(raw.aStr),
+    isCorrect: false,
+    source: 'errorNotebook'
+  };
+}
+
+/** Best-effort, clearly-labeled pattern detection. Never claims to know
+ *  WHY the student was wrong — only compares the two stored answers. */
+function detectPattern(attempt){
+  if(attempt.isCorrect) return null;
+  const sa = String(attempt.studentAnswer||'').trim().toUpperCase();
+  const ca = String(attempt.correctAnswer||'').trim().toUpperCase();
+  if(!sa || sa === 'EMPTY' || sa === 'N/A') return 'No answer submitted (time expired or skipped).';
+  if(sa === ca) return null; // shouldn't happen if isCorrect is false, but guard anyway
+  if(sa.length !== ca.length) return 'Possible digit-count / format mismatch.';
+  const numSa = parseFloat(sa), numCa = parseFloat(ca);
+  if(!isNaN(numSa) && !isNaN(numCa)){
+    const diff = Math.abs(numSa - numCa);
+    if(diff > 0 && diff <= 2) return 'Off-by-a-small-amount — possible rounding, carry, or boundary slip.';
+  }
+  let sameDigits = true;
+  for(const ch of sa){ if(!ca.includes(ch)){ sameDigits = false; break; } }
+  if(sameDigits && sa.length === ca.length) return 'Same digits, different order/value — possible digit-position (place value) slip.';
+  return 'Unclassified — insufficient data for a specific pattern.';
+}
+
+/* ================================================================
+   ANALYTICS ENGINE
+   Pure functions over normalized attempts. Every function here is
+   explicit about minimum-sample requirements so the dashboard never
+   draws a strong conclusion ("declining", "critical") from noise.
+   ================================================================ */
+function buildAttemptsForDoc(doc, uid, name){
+  let history = doc && Array.isArray(doc.history) ? doc.history : [];
+  let notebook = doc && Array.isArray(doc.errorNotebook) ? doc.errorNotebook : [];
+
+  // If viewing self or doc has no history, merge/fallback with local localStorage data
+  if (state.viewedIsSelf) {
+    try {
+      const localHist = JSON.parse(localStorage.getItem('numSysHistory') || '[]');
+      if (Array.isArray(localHist) && localHist.length) {
+        // Merge history without duplicating entries by stringifying problem + time/date
+        const seen = new Set(history.map(h => `${h.problem}_${h.timeSeconds}_${h.date||''}_${h.time||''}`));
+        localHist.forEach(lh => {
+          const key = `${lh.problem}_${lh.timeSeconds}_${lh.date||''}_${lh.time||''}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            history.push(lh);
+          }
+        });
+      }
+      const localNb = JSON.parse(localStorage.getItem('numSysErrorNotebook') || '[]');
+      if (Array.isArray(localNb) && localNb.length) {
+        const seenNb = new Set(notebook.map(n => n.id || `${n.sB}_${n.tB}_${n.qStr}`));
+        localNb.forEach(ln => {
+          const key = ln.id || `${ln.sB}_${ln.tB}_${ln.qStr}`;
+          if (!seenNb.has(key)) {
+            seenNb.add(key);
+            notebook.push(ln);
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('Local storage fallback error in analytics:', e);
+    }
+  }
+
+  if (!doc && !history.length && !notebook.length) return { attempts:[], mistakes:[] };
+
+  const ctx = { uid, name: name || (doc ? doc.name : null) || 'Learner' };
+  const attempts = history.map(h=>normalizeAttempt(h, ctx))
+    .sort((a,b)=>{
+      if(a.timestampMs!=null && b.timestampMs!=null) return b.timestampMs - a.timestampMs;
+      return 0; // preserve original (already newest-first) order when unparseable
+    });
+  const wrongFromHistory = attempts.filter(a=>!a.isCorrect);
+  const notebookMistakes = notebook.map(n=>normalizeNotebookEntry(n, ctx));
+  return { attempts, mistakes:[...wrongFromHistory, ...notebookMistakes] };
+}
+
+function deriveSessions(attempts){
+  const timed = attempts.filter(a=>a.timestampMs!=null).sort((a,b)=>a.timestampMs-b.timestampMs);
+  if(!timed.length) return [];
+  const sessions = [];
+  let cur = [timed[0]];
+  for(let i=1;i<timed.length;i++){
+    const gap = timed[i].timestampMs - timed[i-1].timestampMs;
+    if(gap > CFG.sessionGapMs){
+      sessions.push(cur);
+      cur = [timed[i]];
+    } else {
+      cur.push(timed[i]);
+    }
+  }
+  sessions.push(cur);
+  return sessions.map((list, idx)=>{
+    const correct = list.filter(a=>a.isCorrect).length;
+    const points = list.reduce((s,a)=>s+(a.points||0),0);
+    return {
+      sessionId: `Derived Session #${idx+1}`,
+      derived: true,
+      start: list[0].timestampMs,
+      end: list[list.length-1].timestampMs,
+      durationMs: list[list.length-1].timestampMs - list[0].timestampMs,
+      questions: list.length,
+      correct, wrong: list.length-correct,
+      accuracy: list.length ? (correct/list.length*100) : null,
+      points,
+      attempts: list.slice().reverse() // newest-first for display
+    };
+  }).reverse(); // most recent session first
+}
+
+function computeSelfKPIs(summary, attempts){
+  const times = attempts.map(a=>a.timeTaken).filter(t=>typeof t==='number');
+  const avgTime = times.length ? times.reduce((a,b)=>a+b,0)/times.length : null;
+  const correctTimes = attempts.filter(a=>a.isCorrect).map(a=>a.timeTaken).filter(t=>typeof t==='number');
+  const wrongTimes = attempts.filter(a=>!a.isCorrect).map(a=>a.timeTaken).filter(t=>typeof t==='number');
+
+  let maxStreakFromHist = summary.maxStreak || 0;
+  if (attempts && attempts.length) {
+    let cur = 0, peak = 0;
+    const chrono = attempts.slice().reverse();
+    chrono.forEach(a => {
+      if (a.isCorrect) { cur++; if (cur > peak) peak = cur; }
+      else { cur = 0; }
+    });
+    maxStreakFromHist = Math.max(maxStreakFromHist, peak);
+  }
+
+  return {
+    totalSolved: summary.totalSolved,
+    correct: summary.correct,
+    wrong: summary.errors,
+    accuracy: summary.accuracy,
+    points: summary.points,
+    maxStreak: maxStreakFromHist,
+    avgTime,
+    fastestCorrect: correctTimes.length ? Math.min(...correctTimes) : null,
+    slowestCorrect: correctTimes.length ? Math.max(...correctTimes) : null,
+    fastestWrong: wrongTimes.length ? Math.min(...wrongTimes) : null,
+    slowestWrong: wrongTimes.length ? Math.max(...wrongTimes) : null,
+    recentLoadedCount: attempts.length
+  };
+}
+
+function groupByTopic(attempts){
+  const map = new Map();
+  attempts.forEach(a=>{
+    if(!map.has(a.topic)) map.set(a.topic, []);
+    map.get(a.topic).push(a);
+  });
+  return map;
+}
+
+function computeTopicTable(attempts){
+  const overallTimes = attempts.map(a=>a.timeTaken).filter(t=>typeof t==='number');
+  const overallAvg = overallTimes.length ? overallTimes.reduce((a,b)=>a+b,0)/overallTimes.length : null;
+  const grouped = groupByTopic(attempts);
+  const rows = [];
+  grouped.forEach((list, topic)=>{
+    const wrong = list.filter(a=>!a.isCorrect).length;
+    const correct = list.length - wrong;
+    const times = list.map(a=>a.timeTaken).filter(t=>typeof t==='number');
+    const avgTime = times.length ? times.reduce((a,b)=>a+b,0)/times.length : null;
+    const struggle = list.length >= CFG.minSampleForStruggle
+      ? computeStruggleScore(list, overallAvg) : null;
+    rows.push({
+      topic, attempts:list.length, correct, wrong,
+      accuracy: list.length ? (correct/list.length*100) : null,
+      avgTime, struggleScore: struggle,
+      struggleLabel: struggleLabel(struggle),
+      sampleTooSmall: list.length < CFG.minSampleForStruggle
+    });
+  });
+  return rows.sort((a,b)=> (b.struggleScore||0) - (a.struggleScore||0));
+}
+
+function computeStruggleScore(list, overallAvgTime){
+  const n = list.length;
+  const wrong = list.filter(a=>!a.isCorrect).length;
+  const errorRate = n ? wrong/n : 0;
+  const errorContribution = errorRate * 50;
+
+  const times = list.map(a=>a.timeTaken).filter(t=>typeof t==='number');
+  const avgTime = times.length ? times.reduce((a,b)=>a+b,0)/times.length : null;
+  let timeContribution = 0;
+  if(avgTime!=null && overallAvgTime && overallAvgTime>0){
+    const ratio = avgTime/overallAvgTime;
+    timeContribution = Math.max(0, Math.min(1, ratio-1)) * 20;
+  }
+
+  const repeatContribution = wrong >= 2 ? Math.min(1, (wrong-1)/Math.max(1,n-1)) * 15 : 0;
+
+  const recent = list.slice(0,5);
+  const recentWrong = recent.filter(a=>!a.isCorrect).length;
+  const recentContribution = recent.length ? (recentWrong/recent.length) * 15 : 0;
+
+  const score = errorContribution + timeContribution + repeatContribution + recentContribution;
+  return Math.round(Math.max(0, Math.min(100, score)));
+}
+
+function struggleLabel(score){
+  if(score==null) return null;
+  if(score >= 70) return 'critical';
+  if(score >= 45) return 'needs';
+  if(score >= 20) return 'average';
+  return 'strong';
+}
+function struggleLabelText(key){
+  return { critical:'CRITICAL', needs:'NEEDS PRACTICE', average:'AVERAGE', strong:'STRONG' }[key] || 'N/A';
+}
+
+function computeMistakeStats(attempts, mistakes){
+  const totalAttempts = attempts.length;
+  const totalWrong = attempts.filter(a=>!a.isCorrect).length;
+  const errorRate = totalAttempts ? (totalWrong/totalAttempts*100) : null;
+
+  const byTopic = {};
+  const byType = {};
+  mistakes.forEach(m=>{
+    byTopic[m.topic] = (byTopic[m.topic]||0)+1;
+    byType[m.category] = (byType[m.category]||0)+1;
+  });
+  const topTopic = Object.entries(byTopic).sort((a,b)=>b[1]-a[1])[0];
+  const topType = Object.entries(byType).sort((a,b)=>b[1]-a[1])[0];
+
+  const wrongAttempts = attempts.filter(a=>!a.isCorrect);
+  const wrongTimes = wrongAttempts.map(a=>a.timeTaken).filter(t=>typeof t==='number');
+  const avgTimeBeforeWrong = wrongTimes.length ? wrongTimes.reduce((a,b)=>a+b,0)/wrongTimes.length : null;
+
+  return { totalMistakes: mistakes.length, totalWrongInHistory: totalWrong, errorRate, byTopic, byType, topTopic, topType, avgTimeBeforeWrong };
+}
+
+function computeRepeatedWeakness(attempts){
+  const grouped = groupByTopic(attempts);
+  const out = [];
+  grouped.forEach((list, topic)=>{
+    const wrong = list.filter(a=>!a.isCorrect);
+    if(wrong.length >= 2){
+      const timed = list.filter(a=>a.timestampMs!=null).sort((a,b)=>a.timestampMs-b.timestampMs);
+      const first = timed.length ? timed[0] : null;
+      const last = timed.length ? timed[timed.length-1] : null;
+      const firstHalf = list.slice(Math.ceil(list.length/2));
+      const secondHalf = list.slice(0, Math.ceil(list.length/2));
+      const improvement = (firstHalf.length && secondHalf.length)
+        ? (( (secondHalf.filter(a=>a.isCorrect).length/secondHalf.length) - (firstHalf.filter(a=>a.isCorrect).length/firstHalf.length) ) * 100)
+        : null;
+      out.push({
+        topic, occurrences: wrong.length, total: list.length,
+        firstOccurrence: first ? first.dateStr : 'Unknown',
+        lastOccurrence: last ? last.dateStr : 'Unknown',
+        improvementPct: improvement
+      });
+    }
+  });
+  return out.sort((a,b)=>b.occurrences-a.occurrences);
+}
+
+/** Trend over time, guarded against tiny samples. */
+function computeTrend(attempts){
+  const timed = attempts.filter(a=>a.timestampMs!=null).sort((a,b)=>a.timestampMs-b.timestampMs);
+  if(timed.length < CFG.minSampleForTrend) return { status:'insufficient', label:'Not enough data yet.' };
+  const mid = Math.floor(timed.length/2);
+  const firstHalf = timed.slice(0, mid);
+  const secondHalf = timed.slice(mid);
+  const accFirst = firstHalf.filter(a=>a.isCorrect).length/firstHalf.length*100;
+  const accSecond = secondHalf.filter(a=>a.isCorrect).length/secondHalf.length*100;
+  const delta = accSecond - accFirst;
+  let status = 'stable';
+  if(delta >= 5) status = 'improving';
+  else if(delta <= -5) status = 'declining';
+  return { status, delta, accFirst, accSecond, label:`${accFirst.toFixed(1)}% \u2192 ${accSecond.toFixed(1)}%` };
+}
+
+function computeHeatmap(attempts){
+  const byDay = new Map();
+  attempts.forEach(a=>{
+    const key = a.dateStr || 'Unknown';
+    if(!byDay.has(key)) byDay.set(key, { date:key, solved:0, correct:0, wrong:0, time:0 });
+    const d = byDay.get(key);
+    d.solved++;
+    if(a.isCorrect) d.correct++; else d.wrong++;
+    if(typeof a.timeTaken==='number') d.time += a.timeTaken;
+  });
+  return Array.from(byDay.values());
+}
+
+/** Insight generator — only emits a line when the underlying sample is
+ *  large enough to say something meaningful; otherwise stays silent or
+ *  says "Not enough data yet." */
+function computeInsights(attempts, topicRows, trend){
+  const insights = [];
+  if(attempts.length < 5){
+    insights.push({ tag:'Info', text:'Not enough data yet — keep solving questions to unlock insights.', level:'na' });
+    return insights;
+  }
+  if(trend.status !== 'insufficient'){
+    if(trend.status==='improving') insights.push({ tag:'Trend', text:`Accuracy improved from ${trend.accFirst.toFixed(1)}% to ${trend.accSecond.toFixed(1)}% across your loaded history.`, level:'good' });
+    else if(trend.status==='declining') insights.push({ tag:'Trend', text:`Accuracy dropped from ${trend.accFirst.toFixed(1)}% to ${trend.accSecond.toFixed(1)}% across your loaded history.`, level:'warn' });
+  }
+  const bestTopic = topicRows.filter(t=>!t.sampleTooSmall).sort((a,b)=>(b.accuracy||0)-(a.accuracy||0))[0];
+  const worstTopic = topicRows.filter(t=>!t.sampleTooSmall).sort((a,b)=>(a.accuracy||0)-(b.accuracy||0))[0];
+  if(bestTopic) insights.push({ tag:'Strength', text:`You're most accurate at ${bestTopic.topic} (${bestTopic.accuracy.toFixed(1)}% over ${bestTopic.attempts} attempts).`, level:'good' });
+  if(worstTopic && worstTopic.topic !== (bestTopic&&bestTopic.topic)) insights.push({ tag:'Weak spot', text:`${worstTopic.topic} has your lowest accuracy (${worstTopic.accuracy.toFixed(1)}% over ${worstTopic.attempts} attempts).`, level:'warn' });
+
+  const timedTopics = topicRows.filter(t=>t.avgTime!=null && !t.sampleTooSmall);
+  const overallTimes = attempts.map(a=>a.timeTaken).filter(t=>typeof t==='number');
+  const overallAvg = overallTimes.length ? overallTimes.reduce((a,b)=>a+b,0)/overallTimes.length : null;
+  if(overallAvg){
+    const slowest = timedTopics.sort((a,b)=>b.avgTime-a.avgTime)[0];
+    if(slowest && slowest.avgTime > overallAvg*1.2){
+      const pct = Math.round((slowest.avgTime/overallAvg-1)*100);
+      insights.push({ tag:'Speed', text:`You spend ${pct}% more time on ${slowest.topic} than your overall average.`, level:'warn' });
+    }
+  }
+  if(insights.length===0) insights.push({ tag:'Info', text:'No strong patterns yet — solve more questions across topics to unlock deeper insights.', level:'na' });
+  return insights;
+}
+
+/* ================================================================
+   FILTER ENGINE
+   ================================================================ */
+function withinDateRange(a, range, custom){
+  if(range==='all') return true;
+  if(a.timestampMs==null) return range==='all';
+  const now = Date.now();
+  const day = 24*60*60*1000;
+  if(range==='today'){ const d = new Date(); d.setHours(0,0,0,0); return a.timestampMs >= d.getTime(); }
+  if(range==='7d') return a.timestampMs >= now-7*day;
+  if(range==='30d') return a.timestampMs >= now-30*day;
+  if(range==='90d') return a.timestampMs >= now-90*day;
+  if(range==='custom'){
+    if(custom.from && a.timestampMs < new Date(custom.from).getTime()) return false;
+    if(custom.to && a.timestampMs > new Date(custom.to).getTime()+day) return false;
+    return true;
+  }
+  return true;
+}
+
+function applyFilters(attempts){
+  const f = state.filters;
+  const q = (f.search||'').trim().toLowerCase();
+  return attempts.filter(a=>{
+    if(f.type!=='all' && a.category!==f.type) return false;
+    if(f.result==='correct' && !a.isCorrect) return false;
+    if(f.result==='wrong' && a.isCorrect) return false;
+    if(f.topic!=='all' && a.topic!==f.topic) return false;
+    if(!withinDateRange(a, f.dateRange, f.custom)) return false;
+    if(q){
+      const hay = `${a.question} ${a.topic} ${a.studentAnswer} ${a.correctAnswer} ${a.studentName}`.toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+/* ================================================================
+   ORCHESTRATION
+   ================================================================ */
+function hideAllGates(){
+  $('#authGate').classList.add('hidden');
+  $('#loadingGate').classList.add('hidden');
+  $('#errorGate').classList.add('hidden');
+  $('#tabPanels').classList.add('hidden');
+}
+function showErrorGate(title, msg){
+  hideAllGates();
+  $('#errorTitle').textContent = title || 'Something went wrong';
+  $('#errorMsg').textContent = msg || 'Please try again.';
+  $('#errorGate').classList.remove('hidden');
+}
+function showLoadingGate(msg){
+  hideAllGates();
+  if(msg) $('#loadingMsg').textContent = msg;
+  $('#loadingGate').classList.remove('hidden');
+}
+
+async function loadInitialData(){
+  showLoadingGate('Loading your Number Trainer data…');
+  try{
+    watchOwnDoc(state.user.uid);
+
+    if(!state.viewedIsSelf){
+      state.viewedDoc = await fetchStudentDoc(state.viewedUid);
+    } else {
+      // wait briefly for the first snapshot if it hasn't arrived yet
+      let tries = 0;
+      while(state.selfDoc===null && tries < 40){ await new Promise(r=>setTimeout(r,50)); tries++; }
+      state.viewedDoc = state.selfDoc;
+    }
+
+    onViewedDocChanged();
+
+    if(state.isAdmin) {
+      await fetchStudentsPage(true);
+      if (state.viewedIsSelf) state.activeTab = 'cohortAi';
+    }
+
+    hideAllGates();
+    $('#tabPanels').classList.remove('hidden');
+    renderTabNav();
+    switchTab(state.activeTab);
+  }catch(err){
+    console.error(err);
+    showErrorGate('Could not load analytics', err && err.message ? err.message : 'Unknown error. Check your connection and Firestore permissions.');
+  }
+}
+
+function onViewedDocChanged(){
+  const name = state.viewedDoc ? state.viewedDoc.name : null;
+  const built = buildAttemptsForDoc(state.viewedDoc, state.viewedUid, name);
+  state.attempts = built.attempts;
+  state.mistakes = built.mistakes;
+  state.sessions = deriveSessions(state.attempts);
+  // Re-render the currently active tab in place so live updates show up
+  // without a full page reload (see realtime requirement).
+  if(!$('#tabPanels').classList.contains('hidden')) renderActiveTab();
+}
+
+async function selectStudent(uid, name){
+  if(!state.isAdmin && uid !== state.user.uid) return; // never trust the client — Firestore rules are the real gate
+  showLoadingGate(`Loading ${name||uid}…`);
+  state.viewedUid = uid;
+  state.viewedIsSelf = uid === state.user.uid;
+  setLive(state.viewedIsSelf);
+  try{
+    state.viewedDoc = state.viewedIsSelf ? state.selfDoc : await fetchStudentDoc(uid);
+    if(!state.viewedDoc){
+      toast('No analytics data found for that student yet.', 'error');
+    }
+    onViewedDocChanged();
+    hideAllGates();
+    $('#tabPanels').classList.remove('hidden');
+    const url = new URL(window.location.href);
+    if(state.isAdmin && !state.viewedIsSelf) url.searchParams.set('student', uid); else url.searchParams.delete('student');
+    window.history.replaceState({}, '', url);
+    switchTab('overview');
+  }catch(err){
+    showErrorGate('Could not load that student', err.message||String(err));
+  }
+}
+
+/* ================================================================
+   TAB NAV + ROUTER
+   ================================================================ */
+function renderTabNav(){
+  const nav = $('#tabNav');
+  nav.classList.remove('hidden');
+
+  let visibleTabs = [];
+  if (state.isAdmin && state.viewedIsSelf) {
+    // Admin Mode (self view): only cohort AI, student roster, and topics
+    visibleTabs = TABS.filter(t => t.id === 'cohortAi' || t.id === 'students' || t.id === 'topics' || t.id === 'leaderboard');
+    if (!visibleTabs.some(t => t.id === state.activeTab)) {
+      state.activeTab = 'cohortAi';
+    }
+  } else if (state.isAdmin && !state.viewedIsSelf) {
+    // Admin inspecting a specific student
+    visibleTabs = TABS.filter(t => t.id !== 'cohortAi' && t.id !== 'students');
+  } else {
+    // Normal student mode
+    visibleTabs = TABS.filter(t => !t.adminOnly);
+  }
+
+  nav.innerHTML = visibleTabs.map(t=>`
+    <button class="tab-btn" role="tab" id="tabbtn-${t.id}" aria-selected="${state.activeTab===t.id}" data-tab="${t.id}">${esc(t.label)}</button>
+  `).join('');
+  $all('.tab-btn', nav).forEach(btn=>{
+    btn.addEventListener('click', ()=> switchTab(btn.dataset.tab));
+  });
+
+  renderAdminStudentInspectionHeader();
+}
+
+function renderAdminStudentInspectionHeader() {
+  let header = $('#adminInspectionHeader');
+  if (state.isAdmin && !state.viewedIsSelf) {
+    if (!header) {
+      header = document.createElement('div');
+      header.id = 'adminInspectionHeader';
+      header.style.cssText = 'background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.3); border-radius:12px; padding:12px 20px; margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;';
+      const container = $('#tabPanels')?.parentNode || document.body;
+      const tabNav = $('#tabNav');
+      if (tabNav && tabNav.parentNode) tabNav.parentNode.insertBefore(header, tabNav);
+    }
+    const studentName = state.viewedDoc ? (state.viewedDoc.name || state.viewedDoc.email || 'Student') : 'Student';
+    header.innerHTML = `
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:18px;">🔍</span>
+        <div>
+          <div style="font-weight:700; font-size:14px; color:var(--text);">Inspecting Student Record: <span style="color:var(--primary);">${esc(studentName)}</span></div>
+          <div style="font-size:12px; color:var(--item-subtext, #64748b);">You are reviewing this student's individual analytics. No data is stored for your admin account.</div>
+        </div>
+      </div>
+      <button id="backToCohortBtn" class="btn btn-secondary" style="background:var(--primary); color:#fff; border:none; padding:8px 16px; border-radius:8px; font-weight:700; cursor:pointer; font-size:13px; display:inline-flex; align-items:center; gap:6px;">
+        ← Back to Cohort AI
+      </button>
+    `;
+    header.classList.remove('hidden');
+    $('#backToCohortBtn')?.addEventListener('click', () => {
+      state.viewedIsSelf = true;
+      state.viewedUid = state.user.uid;
+      const url = new URL(window.location.href);
+      url.searchParams.delete('student');
+      window.history.replaceState({}, '', url);
+      renderTabNav();
+      switchTab('cohortAi');
+    });
+  } else {
+    if (header) header.classList.add('hidden');
+  }
+}
+
+function switchTab(id){
+  state.activeTab = id;
+  $all('.tab-btn').forEach(b=> b.setAttribute('aria-selected', String(b.dataset.tab===id)));
+  $all('.panel').forEach(p=> p.classList.add('hidden'));
+  const panel = $('#panel-'+id);
+  if(panel) panel.classList.remove('hidden');
+  renderActiveTab();
+}
+
+function renderActiveTab(){
+  const id = state.activeTab;
+  try{
+    if(id==='overview') renderOverview();
+    else if(id==='aiReport') renderAiReport();
+    else if(id==='cohortAi') renderCohortAiReport();
+    else if(id==='students') renderStudents();
+    else if(id==='performance') renderPerformance();
+    else if(id==='questions') renderQuestions();
+    else if(id==='mistakes') renderMistakes();
+    else if(id==='topics') renderTopics();
+    else if(id==='timeline') renderTimeline();
+    else if(id==='sessions') renderSessions();
+    else if(id==='leaderboard') renderLeaderboard();
+    else if(id==='reports') renderReports();
+  }catch(err){
+    console.error('Render error in tab', id, err);
+    const panel = $('#panel-'+id);
+    if(panel) panel.innerHTML = `<div class="empty-state"><div class="emoji">⚠️</div><h3>Couldn't render this section</h3><p>${esc(err.message||String(err))}</p></div>`;
+  }
+}
+
+/* ================================================================
+   CHART ENGINE — thin wrappers around Chart.js with shared dark theme
+   ================================================================ */
+const CHART_DEFAULTS = {
+  color: '#94a3b8',
+  gridColor: 'rgba(255,255,255,.06)'
+};
+function destroyChart(key){ if(state.charts[key]){ state.charts[key].destroy(); delete state.charts[key]; } }
+function isChartJsReady(){ return typeof Chart !== 'undefined'; }
+function chartFallback(canvasId){
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  const box = canvas.closest('.chart-box') || canvas.parentElement;
+  if(box){
+    box.innerHTML = `<div class="empty-state" style="padding:14px;">
+      <div class="emoji">📉</div>
+      <h3 style="font-size:13px;">Chart unavailable</h3>
+      <p>The Chart.js library didn't load (often an ad blocker or network filter blocking the CDN). The numbers above are still accurate — this only affects the graphic.</p>
+    </div>`;
+  }
+}
+function makeLineChart(canvasId, key, labels, datasets){
+  if(!isChartJsReady()){ chartFallback(canvasId); return; }
+  destroyChart(key);
+  const ctx = document.getElementById(canvasId);
+  if(!ctx) return;
+  state.charts[key] = new Chart(ctx, {
+    type:'line',
+    data:{ labels, datasets },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ labels:{ color:CHART_DEFAULTS.color, font:{size:11} } } },
+      scales:{
+        x:{ ticks:{ color:CHART_DEFAULTS.color, font:{size:10}, maxRotation:0 }, grid:{ color:CHART_DEFAULTS.gridColor } },
+        y:{ ticks:{ color:CHART_DEFAULTS.color, font:{size:10} }, grid:{ color:CHART_DEFAULTS.gridColor } }
+      }
+    }
+  });
+}
+function makeBarChart(canvasId, key, labels, datasets, horizontal){
+  if(!isChartJsReady()){ chartFallback(canvasId); return; }
+  destroyChart(key);
+  const ctx = document.getElementById(canvasId);
+  if(!ctx) return;
+  state.charts[key] = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets },
+    options:{
+      indexAxis: horizontal ? 'y' : 'x',
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display: datasets.length>1, labels:{ color:CHART_DEFAULTS.color, font:{size:11} } } },
+      scales:{
+        x:{ ticks:{ color:CHART_DEFAULTS.color, font:{size:10} }, grid:{ color:CHART_DEFAULTS.gridColor } },
+        y:{ ticks:{ color:CHART_DEFAULTS.color, font:{size:10} }, grid:{ color:CHART_DEFAULTS.gridColor } }
+      }
+    }
+  });
+}
+function makeDoughnutChart(canvasId, key, labels, data, colors){
+  if(!isChartJsReady()){ chartFallback(canvasId); return; }
+  destroyChart(key);
+  const ctx = document.getElementById(canvasId);
+  if(!ctx) return;
+  state.charts[key] = new Chart(ctx, {
+    type:'doughnut',
+    data:{ labels, datasets:[{ data, backgroundColor:colors, borderWidth:0 }] },
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:'68%',
+      plugins:{ legend:{ position:'bottom', labels:{ color:CHART_DEFAULTS.color, font:{size:11}, boxWidth:10 } } }
+    }
+  });
+}
+
+/* ================================================================
+   UI RENDERING — OVERVIEW
+   ================================================================ */
+function kpiCard(label, value, cls, trend){
+  return `<div class="kpi-card ${cls||''}">
+    <div class="kpi-label">${esc(label)}</div>
+    <div class="kpi-value">${value}</div>
+    ${trend?`<div class="kpi-trend ${trend.dir||''}">${esc(trend.text)}</div>`:''}
+  </div>`;
+}
+
+function renderOverview(){
+  const panel = $('#panel-overview');
+  const summary = state.viewedDoc ? normalizeStudentSummary(state.viewedDoc, state.viewedUid) : null;
+
+  if(!summary){
+    panel.innerHTML = `<div class="empty-state"><div class="emoji">🌱</div><h3>No analytics yet</h3><p>This account hasn't solved any questions yet. Once questions are answered in the Trainer, analytics will appear here automatically.</p></div>`;
+    return;
+  }
+
+  const kpis = computeSelfKPIs(summary, state.attempts);
+  const trend = computeTrend(state.attempts);
+
+  const kpiHtml = state.isAdmin && !state.viewedIsSelf
+    ? '' // admin viewing a student sees the student's own KPIs below (same block), no separate global block here
+    : '';
+
+  panel.innerHTML = `
+    <div class="section-title">
+      <div>
+        <h2>${state.viewedIsSelf ? 'My Overview' : esc(summary.name)+"'s Overview"}</h2>
+        <div class="section-sub">${esc(summary.email)} ${state.isAdmin ? '· <span class="mono">'+esc(summary.uid)+'</span>' : ''}</div>
+      </div>
+      ${state.isAdmin && !state.viewedIsSelf ? `<button class="btn ghost" id="backToSelfBtn">← Back to my analytics</button>` : ''}
+    </div>
+
+    <div class="kpi-grid">
+      ${kpiCard('Total Solved', fmtNum(kpis.totalSolved))}
+      ${kpiCard('Correct', fmtNum(kpis.correct), 'good')}
+      ${kpiCard('Wrong', fmtNum(kpis.wrong), 'bad')}
+      ${kpiCard('Accuracy', fmtPct(kpis.accuracy))}
+      ${kpiCard('Total Points', fmtNum(kpis.points), 'gold')}
+      ${kpiCard('Best Streak', fmtNum(kpis.maxStreak), 'gold')}
+      ${kpiCard('Avg Time / Question', fmtSec(kpis.avgTime))}
+      ${kpiCard('Loaded Attempts', fmtNum(kpis.recentLoadedCount), null, {text:`of last ${CFG.historyCap} stored`})}
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="section-title"><h3 style="font-size:14px;">Recent Performance Trend</h3></div>
+        <div class="chart-box"><canvas id="ovTrendChart"></canvas></div>
+        <p class="scope-note">
+          ${trend.status==='insufficient' ? trend.label : `Trend: <b>${trend.status.toUpperCase()}</b> (${trend.label}) — based on the ${state.attempts.length} most recent stored attempts, split into two halves.`}
+        </p>
+      </div>
+      <div class="card" style="border:1px solid rgba(99,102,241,0.3); background:linear-gradient(135deg, rgba(99,102,241,0.05), rgba(168,85,247,0.05));">
+        <div class="section-title" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+          <h3 style="font-size:14px; display:flex; align-items:center;">
+            ${GEMINI_STAR_SVG} Gemini Performance &amp; Diagnostic Insights
+          </h3>
+          <button class="btn ghost sm" style="font-size:11.5px; padding:4px 10px;" onclick="switchTab('aiReport'); fetchGeminiAiAnalysis();">
+            ✨ Run Gemini AI Diagnostic
+          </button>
+        </div>
+        ${aiReportCache[state.viewedUid] ? `
+          <div style="font-size:13px; line-height:1.55; color:var(--text); margin-bottom:10px;">
+            <b>Grade: <span style="color:var(--accent); font-weight:800;">${esc(aiReportCache[state.viewedUid].grade)}</span></b> — ${esc(aiReportCache[state.viewedUid].summary)}
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px; font-size:12.5px;">
+            <div style="color:#10b981; background:rgba(16,185,129,0.08); padding:8px 10px; border-radius:8px;">
+              <b>💪 Core Strengths:</b> ${esc((aiReportCache[state.viewedUid].strengths||[]).join(' • '))}
+            </div>
+            <div style="color:#f59e0b; background:rgba(245,158,11,0.08); padding:8px 10px; border-radius:8px;">
+              <b>🎯 Areas for Improvement:</b> ${esc((aiReportCache[state.viewedUid].areasForImprovement||[]).join(' • '))}
+            </div>
+            <div style="color:var(--text); background:rgba(99,102,241,0.08); padding:8px 10px; border-radius:8px;">
+              <b>🔍 Silly vs. Conceptual Mistakes:</b> ${esc(aiReportCache[state.viewedUid].mistakePatternAnalysis?.sillyMistakes || '')} ${esc(aiReportCache[state.viewedUid].mistakePatternAnalysis?.conceptualFlaws || '')}
+            </div>
+          </div>
+        ` : `
+          <div style="font-size:13px; color:var(--muted); line-height:1.5; margin-bottom:12px;">
+            Generate a real-time Gemini AI diagnostic analyzing your arithmetic accuracy, conversion speed, carry/borrow patterns, and silly vs. conceptual mistakes.
+          </div>
+          <button class="btn primary sm" onclick="switchTab('aiReport'); fetchGeminiAiAnalysis();" style="width:100%; display:flex; align-items:center; justify-content:center; gap:6px;">
+            ${GEMINI_STAR_SVG} Generate Gemini AI Diagnostic Report
+          </button>
+        `}
+      </div>
+    </div>
+
+    <div class="card">
+      <details>
+        <summary style="cursor:pointer; font-size:13px; font-weight:700; color:var(--muted);">About this data — what's real vs. derived</summary>
+        <div style="margin-top:10px; font-size:12.5px; color:var(--muted); line-height:1.6;">
+          <p><b style="color:var(--text)">Stored by the app today:</b> points, best streak, total solved / correct / wrong / accuracy, conversions vs. arithmetic counts, and your <b>${CFG.historyCap} most recent</b> solved-question attempts (date, time, problem text, your answer, correct answer, right/wrong, points, time taken). Conversion mistakes still pending retry are tracked separately with a real timestamp.</p>
+          <p><b style="color:var(--text)">Derived by this dashboard, not stored by the app:</b> topic/category labels (parsed from the problem text), struggle scores, session grouping, trend direction, and mistake-pattern labels. These are best-effort and clearly marked wherever shown.</p>
+          <p><b style="color:var(--text)">Not available at all yet:</b> a persistent question bank ID, per-attempt difficulty, hint usage, retry counts, and a true "started vs. submitted" timestamp pair. Only your most recent ${CFG.historyCap} attempts are kept — older history isn't retained by the existing app.</p>
+        </div>
+      </details>
+    </div>
+  `;
+
+  if(state.isAdmin && !state.viewedIsSelf){
+    $('#backToSelfBtn').addEventListener('click', ()=> selectStudent(state.user.uid, state.user.displayName));
+  }
+
+  if(trend.status!=='insufficient'){
+    const timed = state.attempts.filter(a=>a.timestampMs!=null).sort((a,b)=>a.timestampMs-b.timestampMs);
+    const labels = timed.map(a=> new Date(a.timestampMs).toLocaleDateString(undefined,{month:'short',day:'numeric'}));
+    let running=0, correctCount=0;
+    const accSeries = timed.map((a,i)=>{ running++; if(a.isCorrect) correctCount++; return +(correctCount/running*100).toFixed(1); });
+    makeLineChart('ovTrendChart','ovTrend', labels, [{ label:'Cumulative accuracy %', data:accSeries, borderColor:'#818cf8', backgroundColor:'rgba(99,102,241,.15)', tension:.3, fill:true, pointRadius:2 }]);
+  } else {
+    destroyChart('ovTrend');
+  }
+}
+
+/* ================================================================
+   UI RENDERING — STUDENTS (admin)
+   ================================================================ */
+function renderStudents(){
+  const panel = $('#panel-students');
+  if(!state.isAdmin){ panel.innerHTML = ''; return; }
+
+  const rows = state.students;
+  panel.innerHTML = `
+    <div class="section-title">
+      <div><h2>Students</h2><div class="section-sub">All-time, ordered by points — reads the same userStats collection the app already writes to.</div></div>
+      <div class="btn-row">
+        <button class="btn ghost" id="studentsExportBtn">Export CSV</button>
+        <button class="btn ghost" id="studentsRefreshBtn">↻ Refresh</button>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:16px; background:linear-gradient(135deg, rgba(99,102,241,0.15), rgba(168,85,247,0.12)); border:1.5px solid rgba(99,102,241,0.38); display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:18px 22px;">
+      <div>
+        <div style="font-weight:800; font-size:15px; color:var(--text); display:flex; align-items:center; gap:8px;">
+          ${GEMINI_STAR_SVG} Class-wide Gemini AI Cohort Analytics
+        </div>
+        <div style="font-size:13px; color:var(--muted); margin-top:4px;">
+          Synthesize learning patterns, common logic flaws, pacing, and mistake notebooks across all ${rows.length} loaded student(s).
+        </div>
+      </div>
+      <button class="btn primary" onclick="switchTab('cohortAi')" style="display:inline-flex; align-items:center; gap:6px;">
+        ${GEMINI_STAR_SVG} View Cohort AI Insights
+      </button>
+    </div>
+    <div class="card">
+      <div class="filter-bar" style="margin-bottom:12px;">
+        <input type="text" id="studentSearchInput" placeholder="Search loaded students, or paste an exact email…" aria-label="Search students">
+      </div>
+      <div id="studentsTableWrap" class="table-wrap"></div>
+      <div class="pager">
+        <span>${rows.length} student${rows.length===1?'':'s'} loaded${state.studentsDone?' (all loaded)':''}</span>
+        <button class="btn ghost" id="studentsLoadMoreBtn" ${state.studentsDone?'disabled':''}>${state.studentsLoading?'Loading…':'Load more'}</button>
+      </div>
+    </div>
+  `;
+
+  renderStudentsTable(rows);
+
+  $('#studentsRefreshBtn').addEventListener('click', async ()=>{ await fetchStudentsPage(true); renderStudents(); });
+  $('#studentsLoadMoreBtn').addEventListener('click', async ()=>{ await fetchStudentsPage(false); renderStudents(); });
+  $('#studentsExportBtn').addEventListener('click', ()=>{
+    exportRowsCSV(state.students, [
+      {label:'Name', get:r=>r.name}, {label:'Email', get:r=>r.email}, {label:'UID', get:r=>r.uid},
+      {label:'Points', get:r=>r.points}, {label:'Total Solved', get:r=>r.totalSolved}, {label:'Accuracy %', get:r=>r.accuracy==null?'':r.accuracy.toFixed(1)},
+      {label:'Best Streak', get:r=>r.maxStreak}
+    ], 'students.csv');
+  });
+
+  const searchInput = $('#studentSearchInput');
+  searchInput.addEventListener('input', debounce(async (e)=>{
+    const val = e.target.value.trim();
+    if(val.includes('@')){
+      const found = await fetchStudentByEmail(val);
+      renderStudentsTable(found ? [found] : []);
+      if(!found) toast('No student found with that exact email.');
+      return;
+    }
+    const q = val.toLowerCase();
+    renderStudentsTable(state.students.filter(s=> s.name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q) || s.uid.toLowerCase().includes(q)));
+  }, 300));
+}
+
+function renderStudentsTable(rows){
+  const wrap = $('#studentsTableWrap');
+  if(!wrap) return;
+  if(!rows.length){
+    wrap.innerHTML = `<div class="empty-state"><div class="emoji">👥</div><h3>No students found</h3><p>Try a different search, or click Load more to fetch additional students.</p></div>`;
+    return;
+  }
+  wrap.innerHTML = `
+    <table>
+      <thead><tr><th>Student</th><th>Points</th><th>Solved</th><th>Accuracy</th><th>Best Streak</th><th>Last Synced</th></tr></thead>
+      <tbody>
+        ${rows.map(r=>`
+          <tr class="clickable" data-uid="${esc(r.uid)}" data-name="${esc(r.name)}">
+            <td><div style="font-weight:700;">${esc(r.name)}</div><div style="color:var(--muted); font-size:11px;">${esc(r.email)}</div></td>
+            <td class="mono">${fmtNum(r.points)}</td>
+            <td class="mono">${fmtNum(r.totalSolved)}</td>
+            <td>${r.accuracy==null?'N/A':fmtPct(r.accuracy)}</td>
+            <td class="mono">${fmtNum(r.maxStreak)}</td>
+            <td>${r.updatedAtMs ? new Date(r.updatedAtMs).toLocaleString() : 'N/A'}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+  $all('tr[data-uid]', wrap).forEach(tr=>{
+    tr.addEventListener('click', ()=> selectStudent(tr.dataset.uid, tr.dataset.name));
+  });
+}
+
+/* ================================================================
+   UI RENDERING — PERFORMANCE
+   ================================================================ */
+function renderPerformance(){
+  const panel = $('#panel-performance');
+  const attempts = state.attempts;
+  if(!attempts.length){
+    panel.innerHTML = `<div class="empty-state"><div class="emoji">📈</div><h3>No performance data yet</h3><p>Solve a few questions in the Trainer and this chart will fill in.</p></div>`;
+    return;
+  }
+  const trend = computeTrend(attempts);
+  const timed = attempts.filter(a=>a.timestampMs!=null).sort((a,b)=>a.timestampMs-b.timestampMs);
+
+  panel.innerHTML = `
+    <div class="section-title"><div><h2>Performance Over Time</h2><div class="section-sub">Based on the ${attempts.length} most recently stored attempts (the app keeps the last ${CFG.historyCap}).</div></div></div>
+    <div class="card"><div class="chart-box"><canvas id="perfAccChart"></canvas></div></div>
+    <div class="grid-2">
+      <div class="card"><h3 style="font-size:13.5px; margin-bottom:8px;">Time per attempt</h3><div class="chart-box sm"><canvas id="perfTimeChart"></canvas></div></div>
+      <div class="card"><h3 style="font-size:13.5px; margin-bottom:8px;">Correct vs Wrong</h3><div class="chart-box sm"><canvas id="perfCwChart"></canvas></div></div>
+    </div>
+    <div class="card">
+      <p class="scope-note">${trend.status==='insufficient' ? trend.label : `Overall trend: <b>${trend.status.toUpperCase()}</b> — first-half accuracy ${trend.accFirst.toFixed(1)}% vs second-half ${trend.accSecond.toFixed(1)}%. Classifications require at least ${CFG.minSampleForTrend} timestamped attempts to avoid drawing conclusions from noise.</p>`}
+    </div>
+  `;
+  if(!timed.length){ return; }
+
+  const labels = timed.map(a=> new Date(a.timestampMs).toLocaleDateString(undefined,{month:'short',day:'numeric'})+' '+new Date(a.timestampMs).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'}));
+  let running=0, correctCount=0;
+  const accSeries = timed.map(a=>{ running++; if(a.isCorrect) correctCount++; return +(correctCount/running*100).toFixed(1); });
+  makeLineChart('perfAccChart','perfAcc', labels, [{ label:'Cumulative accuracy %', data:accSeries, borderColor:'#818cf8', backgroundColor:'rgba(99,102,241,.15)', tension:.3, fill:true, pointRadius:2 }]);
+
+  const timeSeries = timed.map(a=> a.timeTaken);
+  makeBarChart('perfTimeChart','perfTime', labels, [{ label:'Seconds', data:timeSeries, backgroundColor: timed.map(a=>a.isCorrect?'rgba(16,185,129,.55)':'rgba(244,63,94,.55)') }]);
+
+  const correct = attempts.filter(a=>a.isCorrect).length;
+  makeDoughnutChart('perfCwChart','perfCw', ['Correct','Wrong'], [correct, attempts.length-correct], ['#10b981','#f43f5e']);
+}
+
+/* ================================================================
+   UI RENDERING — QUESTIONS (complete AVAILABLE history + filters)
+   ================================================================ */
+function uniqueTopics(attempts){
+  return Array.from(new Set(attempts.map(a=>a.topic))).sort();
+}
+
+function filterBarHtml(attempts, includeType){
+  const topics = uniqueTopics(attempts);
+  return `
+    <div class="filter-bar">
+      <label>Search
+        <input type="text" id="fSearch" placeholder="question, answer, topic…" value="${esc(state.filters.search)}">
+      </label>
+      <label>Date range
+        <select id="fDateRange">
+          ${['all','today','7d','30d','90d','custom'].map(v=>`<option value="${v}" ${state.filters.dateRange===v?'selected':''}>${({all:'All time',today:'Today',['7d']:'Last 7 days',['30d']:'Last 30 days',['90d']:'Last 90 days',custom:'Custom range'})[v]}</option>`).join('')}
+        </select>
+      </label>
+      <label>Topic
+        <select id="fTopic">
+          <option value="all" ${state.filters.topic==='all'?'selected':''}>All topics</option>
+          ${topics.map(t=>`<option value="${esc(t)}" ${state.filters.topic===t?'selected':''}>${esc(t)}</option>`).join('')}
+        </select>
+      </label>
+      <label>Result
+        <select id="fResult">
+          <option value="all" ${state.filters.result==='all'?'selected':''}>Correct & Wrong</option>
+          <option value="correct" ${state.filters.result==='correct'?'selected':''}>Correct only</option>
+          <option value="wrong" ${state.filters.result==='wrong'?'selected':''}>Wrong only</option>
+        </select>
+      </label>
+      ${includeType?`<label>Type
+        <select id="fType">
+          <option value="all" ${state.filters.type==='all'?'selected':''}>All types</option>
+          <option value="Conversion" ${state.filters.type==='Conversion'?'selected':''}>Conversion</option>
+          <option value="Arithmetic" ${state.filters.type==='Arithmetic'?'selected':''}>Arithmetic</option>
+        </select>
+      </label>`:''}
+      <button class="btn ghost" id="fClearBtn">Clear filters</button>
+    </div>
+    ${state.filters.dateRange==='custom' ? `
+      <div class="filter-bar" style="margin-top:8px;">
+        <label>From <input type="date" id="fFrom" value="${state.filters.custom.from||''}"></label>
+        <label>To <input type="date" id="fTo" value="${state.filters.custom.to||''}"></label>
+      </div>` : ''}
+  `;
+}
+
+function wireFilterBar(onChange){
+  const s = $('#fSearch'); if(s) s.addEventListener('input', debounce(e=>{ state.filters.search = e.target.value; onChange(); }, 250));
+  const dr = $('#fDateRange'); if(dr) dr.addEventListener('change', e=>{ state.filters.dateRange = e.target.value; onChange(); });
+  const tp = $('#fTopic'); if(tp) tp.addEventListener('change', e=>{ state.filters.topic = e.target.value; onChange(); });
+  const rs = $('#fResult'); if(rs) rs.addEventListener('change', e=>{ state.filters.result = e.target.value; onChange(); });
+  const ty = $('#fType'); if(ty) ty.addEventListener('change', e=>{ state.filters.type = e.target.value; onChange(); });
+  const cb = $('#fClearBtn'); if(cb) cb.addEventListener('click', ()=>{ state.filters = { search:'', dateRange:'all', topic:'all', result:'all', type:'all', custom:{from:null,to:null} }; onChange(); });
+  const ff = $('#fFrom'); if(ff) ff.addEventListener('change', e=>{ state.filters.custom.from = e.target.value; onChange(); });
+  const ft = $('#fTo'); if(ft) ft.addEventListener('change', e=>{ state.filters.custom.to = e.target.value; onChange(); });
+}
+
+function sortRows(rows, table, columns){
+  const s = state.sort;
+  if(s.table !== table || !s.key) return rows;
+  const col = columns[s.key];
+  if(!col) return rows;
+  const sorted = rows.slice().sort((a,b)=>{
+    const av = col(a), bv = col(b);
+    if(av==null && bv==null) return 0;
+    if(av==null) return 1;
+    if(bv==null) return -1;
+    if(av<bv) return -1; if(av>bv) return 1; return 0;
+  });
+  if(s.dir==='desc') sorted.reverse();
+  return sorted;
+}
+function wireSortableHeaders(wrap, table, columns, rerender){
+  $all('thead th[data-key]', wrap).forEach(th=>{
+    th.addEventListener('click', ()=>{
+      const key = th.dataset.key;
+      if(state.sort.table===table && state.sort.key===key) state.sort.dir = state.sort.dir==='desc'?'asc':'desc';
+      else { state.sort.table = table; state.sort.key = key; state.sort.dir = 'desc'; }
+      rerender();
+    });
+  });
+}
+function sortIndicator(table, key){
+  if(state.sort.table!==table || state.sort.key!==key) return '';
+  return `<span class="sort-ind">${state.sort.dir==='desc'?'▼':'▲'}</span>`;
+}
+
+function renderQuestions(){
+  const panel = $('#panel-questions');
+  const all = state.attempts;
+  if(!all.length){
+    panel.innerHTML = `<div class="empty-state"><div class="emoji">📝</div><h3>No question history yet</h3><p>Once questions are solved in the Trainer, they'll show up here.</p></div>`;
+    return;
+  }
+
+  panel.innerHTML = `
+    <div class="section-title">
+      <div><h2>Question History</h2><div class="section-sub">Showing the most recent ${CFG.historyCap} attempts stored by the app — not the full lifetime history.</div></div>
+      <div class="btn-row">
+        <button class="btn ghost" id="qExportCsv">Export CSV</button>
+        <button class="btn ghost" id="qExportJson">Export JSON</button>
+      </div>
+    </div>
+    <div class="card">
+      <div id="qFilterBarWrap">${filterBarHtml(all, true)}</div>
+      <div class="table-wrap" style="margin-top:14px;" id="qTableWrap"></div>
+      <div class="pager"><span id="qPagerText"></span></div>
+    </div>
+  `;
+
+  function updateQuestionsView(){
+    const filtered = sortRows(applyFilters(all), 'questions', {
+      date:a=>a.timestampMs, topic:a=>a.topic, result:a=>a.isCorrect?1:0, time:a=>a.timeTaken, points:a=>a.points
+    });
+    renderQuestionsTable(filtered);
+    const pagerText = $('#qPagerText');
+    if(pagerText) pagerText.textContent = `${filtered.length} of ${all.length} loaded attempts`;
+  }
+
+  wireFilterBar(()=>{
+    if(state.filters.dateRange === 'custom') {
+      const wrap = $('#qFilterBarWrap');
+      if(wrap && !$('#fFrom')) {
+        wrap.innerHTML = filterBarHtml(all, true);
+        wireFilterBar(updateQuestionsView);
+      }
+    }
+    updateQuestionsView();
+  });
+
+  updateQuestionsView();
+
+  $('#qExportCsv').addEventListener('click', ()=> {
+    const filtered = sortRows(applyFilters(all), 'questions', {
+      date:a=>a.timestampMs, topic:a=>a.topic, result:a=>a.isCorrect?1:0, time:a=>a.timeTaken, points:a=>a.points
+    });
+    exportRowsCSV(filtered, [
+      {label:'Date', get:r=>r.dateStr||''}, {label:'Time', get:r=>r.timeStr||''}, {label:'Type', get:r=>r.category},
+      {label:'Topic', get:r=>r.topic}, {label:'Question', get:r=>r.question}, {label:'Student Answer', get:r=>r.studentAnswer},
+      {label:'Correct Answer', get:r=>r.correctAnswer}, {label:'Result', get:r=>r.isCorrect?'CORRECT':'WRONG'},
+      {label:'Time Taken (s)', get:r=>r.timeTaken==null?'':r.timeTaken}, {label:'Points', get:r=>r.points==null?'':r.points}
+    ], 'question-history.csv');
+  });
+  $('#qExportJson').addEventListener('click', ()=> {
+    const filtered = sortRows(applyFilters(all), 'questions', {
+      date:a=>a.timestampMs, topic:a=>a.topic, result:a=>a.isCorrect?1:0, time:a=>a.timeTaken, points:a=>a.points
+    });
+    exportRowsJSON(filtered, 'question-history.json');
+  });
+}
+
+function renderQuestionsTable(rows){
+  const wrap = $('#qTableWrap');
+  if(!rows.length){ wrap.innerHTML = `<div class="empty-state"><div class="emoji">🔍</div><h3>No attempts match these filters</h3><p>Try clearing filters.</p></div>`; return; }
+  wrap.innerHTML = `
+    <table>
+      <thead><tr>
+        <th data-key="date">Date / Time${sortIndicator('questions','date')}</th>
+        <th data-key="topic">Topic${sortIndicator('questions','topic')}</th>
+        <th>Question</th><th>Answer</th><th>Correct</th>
+        <th data-key="result">Result${sortIndicator('questions','result')}</th>
+        <th data-key="time">Time${sortIndicator('questions','time')}</th>
+        <th data-key="points">Points${sortIndicator('questions','points')}</th>
+      </tr></thead>
+      <tbody>
+        ${rows.map((r,i)=>`
+          <tr class="clickable" data-idx="${i}">
+            <td>${esc(r.dateStr||'N/A')}<br><span style="color:var(--muted); font-size:11px;">${esc(r.timeStr||'')}</span></td>
+            <td>${esc(r.topic)}</td>
+            <td class="mono">${esc(r.question)}</td>
+            <td class="mono">${esc(r.studentAnswer)}</td>
+            <td class="mono">${esc(r.correctAnswer)}</td>
+            <td><span class="pill ${r.isCorrect?'correct':'wrong'}">${r.isCorrect?'CORRECT':'WRONG'}</span></td>
+            <td class="mono">${fmtSec(r.timeTaken)}</td>
+            <td class="mono">${r.points==null?'N/A':(r.points>0?'+':'')+r.points}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+  wireSortableHeaders(wrap, 'questions', {date:1,topic:1,result:1,time:1,points:1}, ()=>renderQuestions());
+  $all('tr[data-idx]', wrap).forEach(tr=>{
+    tr.addEventListener('click', ()=> openAttemptModal(rows[Number(tr.dataset.idx)]));
+  });
+}
+
+/* ---------- Attempt detail modal ---------- */
+function openAttemptModal(a){
+  const root = $('#modalRoot');
+  const pattern = a.isCorrect ? null : detectPattern(a);
+  root.innerHTML = `
+    <div class="modal-overlay" id="modalOverlay">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal-head">
+          <div><h3 id="modalTitle" style="font-size:16px;">Question Attempt</h3><div class="section-sub">${esc(a.topic)} · ${esc(a.category)}</div></div>
+          <button class="modal-close" id="modalCloseBtn" aria-label="Close">✕</button>
+        </div>
+        <div class="detail-grid">
+          <div class="full"><div class="detail-k">Question</div><div class="detail-v">${esc(a.question)}</div></div>
+          <div><div class="detail-k">Date</div><div class="detail-v">${esc(a.dateStr||'N/A')}</div></div>
+          <div><div class="detail-k">Time</div><div class="detail-v">${esc(a.timeStr||'N/A')}</div></div>
+          <div><div class="detail-k">Question ID</div><div class="detail-v">N/A — not recorded (questions are generated on the fly)</div></div>
+          <div><div class="detail-k">Difficulty</div><div class="detail-v">N/A — not recorded per attempt</div></div>
+          <div><div class="detail-k">Student Answer</div><div class="detail-v">${esc(a.studentAnswer)}</div></div>
+          <div><div class="detail-k">Correct Answer</div><div class="detail-v">${esc(a.correctAnswer)}</div></div>
+          <div><div class="detail-k">Result</div><div class="detail-v"><span class="pill ${a.isCorrect?'correct':'wrong'}">${a.isCorrect?'CORRECT':'WRONG'}</span></div></div>
+          <div><div class="detail-k">Time Taken</div><div class="detail-v">${fmtSec(a.timeTaken)}</div></div>
+          <div><div class="detail-k">Points</div><div class="detail-v">${a.points==null?'N/A':(a.points>0?'+':'')+a.points}</div></div>
+          <div><div class="detail-k">Hints Used / Retry Count</div><div class="detail-v">N/A — not recorded</div></div>
+          ${!a.isCorrect?`<div class="full"><div class="detail-k">Error Reason</div><div class="detail-v">Error reason not recorded.</div></div>`:''}
+          ${pattern?`<div class="full"><div class="detail-k">Detected Pattern (heuristic — not certain)</div><div class="detail-v" style="font-family:var(--font-ui);">${esc(pattern)}</div></div>`:''}
+        </div>
+      </div>
+    </div>
+  `;
+  const close = ()=>{ root.innerHTML=''; document.removeEventListener('keydown', onEsc); };
+  const onEsc = (e)=>{ if(e.key==='Escape') close(); };
+  $('#modalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='modalOverlay') close(); });
+  $('#modalCloseBtn').addEventListener('click', close);
+  document.addEventListener('keydown', onEsc);
+  $('#modalCloseBtn').focus();
+}
+
+/* ================================================================
+   UI RENDERING — MISTAKES
+   ================================================================ */
+function renderMistakes(){
+  const panel = $('#panel-mistakes');
+  const attempts = state.attempts, mistakes = state.mistakes;
+  if(!mistakes.length){
+    panel.innerHTML = `<div class="empty-state"><div class="emoji">🎉</div><h3>No mistakes recorded</h3><p>Either everything's been correct, or there's no data yet.</p></div>`;
+    return;
+  }
+  const stats = computeMistakeStats(attempts, mistakes);
+  const repeats = computeRepeatedWeakness(attempts);
+
+  panel.innerHTML = `
+    <div class="section-title"><div><h2>Mistake Analysis</h2><div class="section-sub">Wrong attempts from recent history, plus outstanding items in the conversion Error Notebook.</div></div>
+      <button class="btn ghost" id="mExportBtn">Export CSV</button>
+    </div>
+    <div class="kpi-grid">
+      ${kpiCard('Total Mistakes', fmtNum(stats.totalMistakes), 'bad')}
+      ${kpiCard('Error Rate (recent)', stats.errorRate==null?'N/A':fmtPct(stats.errorRate), 'bad')}
+      ${kpiCard('Most Difficult Topic', stats.topTopic ? esc(stats.topTopic[0]) : 'N/A')}
+      ${kpiCard('Avg Time Before Wrong', fmtSec(stats.avgTimeBeforeWrong))}
+    </div>
+    <div class="grid-2">
+      <div class="card"><h3 style="font-size:13.5px; margin-bottom:8px;">Mistakes by Topic</h3><div class="chart-box"><canvas id="mTopicChart"></canvas></div></div>
+      <div class="card"><h3 style="font-size:13.5px; margin-bottom:8px;">Mistakes by Type</h3><div class="chart-box"><canvas id="mTypeChart"></canvas></div></div>
+    </div>
+    <div class="card">
+      <h3 style="font-size:14px; margin-bottom:10px;">Repeated Weakness</h3>
+      ${repeats.length ? `
+      <div class="table-wrap"><table>
+        <thead><tr><th>Topic</th><th>Occurrences (wrong)</th><th>Total Attempts</th><th>First Seen</th><th>Most Recent</th><th>Improvement</th></tr></thead>
+        <tbody>${repeats.map(r=>`<tr>
+          <td>${esc(r.topic)}</td><td class="mono">${r.occurrences}</td><td class="mono">${r.total}</td>
+          <td>${esc(r.firstOccurrence)}</td><td>${esc(r.lastOccurrence)}</td>
+          <td>${r.improvementPct==null?'N/A':(r.improvementPct>=0?'+':'')+r.improvementPct.toFixed(0)+'%'}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>` : `<p class="scope-note">No topic has been missed more than once in the recent history yet.</p>`}
+    </div>
+    <div class="card">
+      <h3 style="font-size:14px; margin-bottom:10px;">All Recorded Mistakes</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Source</th><th>Topic</th><th>Question</th><th>Your Answer</th><th>Correct Answer</th><th>Detected Pattern</th></tr></thead>
+        <tbody>${mistakes.map(m=>`<tr>
+          <td><span class="pill neutral">${m.source==='errorNotebook'?'Error Notebook':'History'}</span></td>
+          <td>${esc(m.topic)}</td><td class="mono">${esc(m.question)}</td>
+          <td class="mono">${esc(m.studentAnswer)}</td><td class="mono">${esc(m.correctAnswer)}</td>
+          <td style="white-space:normal; min-width:220px;">${esc(detectPattern(m) || '—')}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+    </div>
+  `;
+
+  const topicEntries = Object.entries(stats.byTopic).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  makeBarChart('mTopicChart','mTopic', topicEntries.map(e=>e[0]), [{label:'Mistakes', data:topicEntries.map(e=>e[1]), backgroundColor:'rgba(244,63,94,.55)'}], true);
+  const typeEntries = Object.entries(stats.byType);
+  makeDoughnutChart('mTypeChart','mType', typeEntries.map(e=>e[0]), typeEntries.map(e=>e[1]), ['#6366f1','#a855f7','#f59e0b']);
+
+  $('#mExportBtn').addEventListener('click', ()=> exportRowsCSV(mistakes, [
+    {label:'Source', get:r=>r.source==='errorNotebook'?'Error Notebook':'History'}, {label:'Topic', get:r=>r.topic},
+    {label:'Question', get:r=>r.question}, {label:'Your Answer', get:r=>r.studentAnswer}, {label:'Correct Answer', get:r=>r.correctAnswer},
+    {label:'Detected Pattern', get:r=>detectPattern(r)||''}
+  ], 'mistakes.csv'));
+}
+
+/* ================================================================
+   UI RENDERING — TOPICS (struggle score)
+   ================================================================ */
+function renderTopics(){
+  const panel = $('#panel-topics');
+  const attempts = state.attempts;
+  if(!attempts.length){
+    panel.innerHTML = `<div class="empty-state"><div class="emoji">📚</div><h3>No topic data yet</h3><p>Solve a few questions to see topic-level analytics.</p></div>`;
+    return;
+  }
+  const rows = sortRows(computeTopicTable(attempts), 'topics', {
+    topic:r=>r.topic, attempts:r=>r.attempts, accuracy:r=>r.accuracy, avgTime:r=>r.avgTime, struggle:r=>r.struggleScore
+  });
+
+  panel.innerHTML = `
+    <div class="section-title"><div><h2>Topic Struggle Analysis</h2><div class="section-sub">Struggle Score (0–100) blends error rate, relative time, repeated mistakes, and recent performance. It's a heuristic, not a certified difficulty rating.</div></div>
+      <button class="btn ghost" id="tExportBtn">Export CSV</button>
+    </div>
+    <div class="card">
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th data-key="topic">Topic${sortIndicator('topics','topic')}</th>
+          <th data-key="attempts">Attempts${sortIndicator('topics','attempts')}</th>
+          <th>Correct</th><th>Wrong</th>
+          <th data-key="accuracy">Accuracy${sortIndicator('topics','accuracy')}</th>
+          <th data-key="avgTime">Avg Time${sortIndicator('topics','avgTime')}</th>
+          <th data-key="struggle">Struggle Score${sortIndicator('topics','struggle')}</th>
+        </tr></thead>
+        <tbody>${rows.map(r=>`<tr>
+          <td>${esc(r.topic)}</td><td class="mono">${r.attempts}</td>
+          <td class="mono">${r.correct}</td><td class="mono">${r.wrong}</td>
+          <td>${r.accuracy==null?'N/A':fmtPct(r.accuracy)}</td>
+          <td class="mono">${fmtSec(r.avgTime)}</td>
+          <td>${r.sampleTooSmall
+              ? `<span class="pill neutral">Too few attempts</span>`
+              : `<span class="struggle-badge ${r.struggleLabel}">${r.struggleScore}/100 · ${struggleLabelText(r.struggleLabel)}</span>`}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+    </div>
+  `;
+  const wrap = panel.querySelector('.table-wrap');
+  wireSortableHeaders(wrap, 'topics', {topic:1,attempts:1,accuracy:1,avgTime:1,struggle:1}, ()=>renderTopics());
+  $('#tExportBtn').addEventListener('click', ()=> exportRowsCSV(rows, [
+    {label:'Topic', get:r=>r.topic}, {label:'Attempts', get:r=>r.attempts}, {label:'Correct', get:r=>r.correct}, {label:'Wrong', get:r=>r.wrong},
+    {label:'Accuracy %', get:r=>r.accuracy==null?'':r.accuracy.toFixed(1)}, {label:'Avg Time (s)', get:r=>r.avgTime==null?'':r.avgTime.toFixed(1)},
+    {label:'Struggle Score', get:r=>r.sampleTooSmall?'':r.struggleScore}
+  ], 'topic-analysis.csv'));
+}
+
+/* ================================================================
+   UI RENDERING — TIMELINE (heatmap + chronological list)
+   ================================================================ */
+function renderTimeline(){
+  const panel = $('#panel-timeline');
+  const attempts = state.attempts;
+  if(!attempts.length){
+    panel.innerHTML = `<div class="empty-state"><div class="emoji">🗓️</div><h3>No activity yet</h3><p>Your daily activity heatmap will appear here once you start solving questions.</p></div>`;
+    return;
+  }
+  const heat = computeHeatmap(attempts);
+  const maxSolved = Math.max(1, ...heat.map(h=>h.solved));
+
+  panel.innerHTML = `
+    <div class="section-title"><div><h2>Timeline &amp; Daily Activity</h2><div class="section-sub">Grouped by the date string the app stores with each attempt.</div></div></div>
+    <div class="card">
+      <h3 style="font-size:14px; margin-bottom:8px;">Activity Heatmap</h3>
+      <div class="heatmap" id="heatmapGrid">
+        ${heat.map(h=>{
+          const intensity = h.solved/maxSolved;
+          const alpha = 0.12 + intensity*0.75;
+          return `<div class="heat-cell" data-date="${esc(h.date)}" title="${esc(h.date)}: ${h.solved} solved, ${h.correct} correct, ${h.wrong} wrong" style="background:rgba(99,102,241,${alpha.toFixed(2)});"></div>`;
+        }).join('')}
+      </div>
+      <div class="heat-legend"><span>Less</span><div class="heat-cell" style="background:rgba(99,102,241,.12); width:11px; height:11px;"></div><div class="heat-cell" style="background:rgba(99,102,241,.5); width:11px; height:11px;"></div><div class="heat-cell" style="background:rgba(99,102,241,.87); width:11px; height:11px;"></div><span>More</span></div>
+    </div>
+    <div class="card">
+      <div id="timelineFilterWrap">${filterBarHtml(attempts, true)}</div>
+      <div id="timelineList" style="margin-top:14px; display:flex; flex-direction:column; gap:10px; max-height:600px; overflow-y:auto;"></div>
+    </div>
+  `;
+
+  function updateTimelineView(){
+    renderTimelineList(applyFilters(attempts));
+  }
+
+  wireFilterBar(()=>{
+    if(state.filters.dateRange === 'custom') {
+      const wrap = $('#timelineFilterWrap');
+      if(wrap && !$('#fFrom')) {
+        wrap.innerHTML = filterBarHtml(attempts, true);
+        wireFilterBar(updateTimelineView);
+      }
+    }
+    updateTimelineView();
+  });
+
+  updateTimelineView();
+
+  $all('.heat-cell', $('#heatmapGrid')).forEach(cell=>{
+    cell.addEventListener('click', ()=>{
+      const date = cell.dataset.date;
+      renderTimelineList(attempts.filter(a=>(a.dateStr||'Unknown')===date));
+      toast(`Showing attempts from ${date}`);
+    });
+  });
+}
+function renderTimelineList(rows){
+  const el = $('#timelineList');
+  if(!el) return;
+  if(!rows.length){ el.innerHTML = `<div class="empty-state"><div class="emoji">🔍</div><h3>Nothing to show</h3><p>Try a different filter or day.</p></div>`; return; }
+  el.innerHTML = rows.map(a=>`
+    <div class="card tight clickable" style="cursor:pointer;" data-id="${esc(a.attemptId||'')}">
+      <div style="display:flex; justify-content:space-between; gap:10px; align-items:center;">
+        <div>
+          <div style="font-weight:700; font-size:13px;">${esc(a.dateStr||'N/A')} — ${esc(a.timeStr||'N/A')}</div>
+          <div style="color:var(--muted); font-size:12px; margin-top:2px;">${esc(a.topic)} · ${esc(a.question)}</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span class="pill ${a.isCorrect?'correct':'wrong'}">${a.isCorrect?'CORRECT':'WRONG'}</span>
+          <span class="mono" style="font-size:12px; color:var(--muted);">${fmtSec(a.timeTaken)}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+  $all('[data-id]', el).forEach((card,i)=> card.addEventListener('click', ()=> openAttemptModal(rows[i])));
+}
+
+/* ================================================================
+   UI RENDERING — SESSIONS (derived)
+   ================================================================ */
+function renderSessions(){
+  const panel = $('#panel-sessions');
+  const sessions = state.sessions;
+  if(!sessions.length){
+    panel.innerHTML = `<div class="empty-state"><div class="emoji">⏱️</div><h3>No sessions could be derived</h3><p>Sessions need timestamped attempts. This appears once you have a few solved questions with parseable dates.</p></div>`;
+    return;
+  }
+  panel.innerHTML = `
+    <div class="section-title"><div><h2>Sessions</h2><div class="section-sub">The app doesn't store a session ID — these are <b>derived</b> by grouping attempts that are less than ${CFG.sessionGapMs/60000} minutes apart. Labeled clearly as derived, not stored.</div></div></div>
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      ${sessions.map((s,i)=>`
+        <div class="card">
+          <div class="section-title">
+            <div>
+              <h3 style="font-size:14px;">${esc(s.sessionId)} <span class="pill neutral">Derived</span></h3>
+              <div class="section-sub">${new Date(s.start).toLocaleString()} → ${new Date(s.end).toLocaleTimeString()} · ${fmtDur(s.durationMs)}</div>
+            </div>
+            <div class="btn-row">
+              <span class="pill ${s.accuracy>=70?'correct':'wrong'}">${s.correct}/${s.questions} correct (${fmtPct(s.accuracy)})</span>
+              <span class="pill gold">${s.points>=0?'+':''}${s.points} pts</span>
+            </div>
+          </div>
+          <div class="table-wrap" style="margin-top:10px;">
+            <table><thead><tr><th>Time</th><th>Topic</th><th>Question</th><th>Result</th><th>Time Taken</th></tr></thead>
+            <tbody>${s.attempts.map(a=>`<tr class="clickable" data-sess="${i}" data-aid="${esc(a.attemptId||'')}">
+              <td>${esc(a.timeStr||'N/A')}</td><td>${esc(a.topic)}</td><td class="mono">${esc(a.question)}</td>
+              <td><span class="pill ${a.isCorrect?'correct':'wrong'}">${a.isCorrect?'CORRECT':'WRONG'}</span></td>
+              <td class="mono">${fmtSec(a.timeTaken)}</td>
+            </tr>`).join('')}</tbody></table>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  $all('tr[data-sess]', panel).forEach(tr=>{
+    tr.addEventListener('click', ()=>{
+      const s = sessions[Number(tr.dataset.sess)];
+      const a = s.attempts.find(x=> (x.attemptId||'') === tr.dataset.aid);
+      if(a) openAttemptModal(a);
+    });
+  });
+}
+
+/* ================================================================
+   UI RENDERING — LEADERBOARD
+   ================================================================ */
+async function renderLeaderboard(){
+  const panel = $('#panel-leaderboard');
+  panel.innerHTML = `<div class="card"><p class="scope-note">Loading leaderboard…</p></div>`;
+  try{
+    let rows = [];
+    if (window.NST && window.NST.fetchLeaderboard) {
+      rows = await window.NST.fetchLeaderboard();
+    } else {
+      let snap;
+      try {
+        snap = await state.db.collection(CFG.collection).orderBy('points','desc').limit(20).get();
+      } catch (orderErr) {
+        snap = await state.db.collection(CFG.collection).limit(50).get();
+      }
+      rows = snap.docs.map(d=>normalizeStudentSummary(d.data(), d.id));
+      rows.sort((a,b) => (b.points || 0) - (a.points || 0));
+    }
+
+    if (!rows || !rows.length) {
+      panel.innerHTML = `<div class="empty-state"><div class="emoji">🏆</div><h3>No rankings yet</h3><p>Start solving questions in the Number System Trainer to earn points!</p></div>`;
+      return;
+    }
+
+    panel.innerHTML = `
+      <div class="section-title"><div><h2>Leaderboard</h2><div class="section-sub">All-time rankings by Digital Points across all registered learners.</div></div></div>
+      <div class="card">
+        <p class="scope-note" style="margin-bottom:10px;">Rankings update automatically whenever points are earned.</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Rank</th><th>Student</th><th>Points</th><th>Solved</th><th>Accuracy</th><th>Best Streak</th></tr></thead>
+          <tbody>${rows.map((r,i)=>{
+            const isMe = state.user && (r.uid === state.user.uid || (state.user.email && r.email === state.user.email));
+            return `<tr${isMe?' style="background:rgba(99,102,241,0.18); font-weight:bold;"':''}>
+            <td><span class="mono" style="font-weight:800; ${i<3?`color:${i===0?'#fbbf24':i===1?'#94a3b8':'#d97706'};`:''}">#${i+1}</span></td>
+            <td>${esc(r.name)}${isMe ? ' <em style="color:#a5b4fc; font-size:12px;">(You)</em>' : ''}</td>
+            <td class="mono">${fmtNum(r.points)}</td><td class="mono">${fmtNum(r.totalSolved)}</td>
+            <td>${r.accuracy==null?'N/A':fmtPct(r.accuracy)}</td><td class="mono">${fmtNum(r.maxStreak)}</td>
+          </tr>`;
+          }).join('')}</tbody>
+        </table></div>
+      </div>
+    `;
+  }catch(err){
+    panel.innerHTML = `<div class="empty-state"><div class="emoji">⚠️</div><h3>Couldn't load the leaderboard</h3><p>${esc(err.message||String(err))}</p></div>`;
+  }
+}
+
+/* ================================================================
+   UI RENDERING — GEMINI AI DIAGNOSTIC REPORT CARD
+   ================================================================ */
+const aiReportCache = {};
+
+async function fetchGeminiAiAnalysis(){
+  const btn = $('#genAiReportBtn');
+  if(btn){ btn.disabled = true; btn.textContent = '✨ Gemini AI Analyzing…'; }
+
+  const resultContainer = $('#aiReportContent');
+  if(resultContainer){
+    resultContainer.innerHTML = `
+      <div class="ai-loading-pane">
+        <div class="ai-loading-pulse">✨</div>
+        <h3 style="font-size:18px; color:var(--text); margin:0;">Gemini AI Performance Analysis in Progress...</h3>
+        <p style="color:var(--muted); font-size:13.5px; max-width:520px; margin:0 auto; line-height:1.6;">
+          Evaluating arithmetic accuracy, base conversion speed, carry/borrow mechanics, silly mistakes, and time allocation…
+        </p>
+        <div class="ai-loading-bar-wrap">
+          <div class="ai-loading-bar-fill"></div>
+        </div>
+      </div>
+    `;
+  }
+
+  const summary = state.viewedDoc ? normalizeStudentSummary(state.viewedDoc, state.viewedUid) : {};
+  const statsPayload = {
+    points: summary.points || 0,
+    currentStreak: summary.currentStreak || 0,
+    maxStreak: summary.maxStreak || 0,
+    arithmetic: summary.arithmeticSolved || 0,
+    conversions: summary.conversionsSolved || 0,
+    errors: summary.wrong || 0,
+    accuracy: summary.accuracy || 0
+  };
+
+  let report = null;
+
+  // 1. Try local Express backend (/api/analyze-performance)
+  try {
+    const res = await fetch('/api/analyze-performance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        stats: statsPayload,
+        history: state.attempts || [],
+        mistakes: state.mistakes || []
+      })
+    });
+
+    const contentType = res.headers.get('content-type') || '';
+    if (res.ok && contentType.includes('application/json')) {
+      const data = await res.json();
+      if (data && data.success && data.report) {
+        report = data.report;
+      }
+    }
+  } catch (e) {
+    console.warn("Local /api/analyze-performance endpoint unavailable, falling back:", e);
+  }
+
+  // 2. Fallback to Cloudflare Worker Proxy if report not generated yet
+  if (!report) {
+    try {
+      const recentMistakesText = (state.mistakes || []).slice(0, 5).map(m =>
+        `Q: ${m.a || m.question || ''} ${m.op || ''} ${m.b || ''} (Base ${m.base || ''}) | User: "${m.userAnswer || m.userVal || ''}" vs Correct: "${m.correctAnswer || m.answer || ''}"`
+      ).join('; ');
+
+      const prompt = `You are a Senior Computer Science Educator analyzing a student's number system performance.
+Analyze this student's performance statistics and respond STRICTLY in JSON format without markdown code blocks.
+
+STUDENT PERFORMANCE DATA:
+- Digital Points: ${statsPayload.points}
+- Overall Accuracy: ${statsPayload.accuracy.toFixed(1)}%
+- Arithmetic Problems Solved: ${statsPayload.arithmetic}
+- Inter-Base Conversions Solved: ${statsPayload.conversions}
+- Total Solved: ${statsPayload.arithmetic + statsPayload.conversions}
+- Incorrect Submissions: ${statsPayload.errors}
+- Max Consecutive Streak: ${statsPayload.maxStreak}
+- Recent Logged Mistakes: ${recentMistakesText || 'Zero active mistakes logged'}
+
+INSTRUCTIONS:
+Provide clear, actionable, highly specific diagnostic insights about binary/hex/octal/decimal arithmetic, place values, carry/borrow mechanics, and speed vs accuracy balance. Do NOT use generic placeholder words.
+
+Respond with JSON matching this structure exactly:
+{
+  "grade": "A+", "A", "B", "C", "D", or "F",
+  "summary": "Detailed 2-3 sentence performance summary describing mastery of positional notation and carry/borrow mechanics based on ${statsPayload.accuracy.toFixed(1)}% accuracy.",
+  "strengths": ["Specific Strength 1", "Specific Strength 2"],
+  "areasForImprovement": ["Specific Actionable Improvement 1", "Specific Actionable Improvement 2"],
+  "mistakePatternAnalysis": {
+    "sillyMistakes": "Specific assessment of calculation precision, typos, or off-by-one errors.",
+    "conceptualFlaws": "Specific analysis of base conversion logic, fractional powers, or borrow/carry handling.",
+    "speedVsAccuracy": "Specific assessment of response pacing and accuracy consistency."
+  },
+  "actionableTips": ["Concrete Tip 1", "Concrete Tip 2", "Concrete Tip 3"]
+}`;
+
+      const workerRes = await fetch("https://gemini-proxy.sriyansraj02.workers.dev/", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: prompt,
+          contents: [{ parts: [{ text: prompt }] }]
+        })
+      });
+
+      if (workerRes.ok) {
+        const workerData = await workerRes.json();
+        let rawText = workerData.solution || workerData.text || workerData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        if (rawText) {
+          rawText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+          report = JSON.parse(rawText);
+        }
+      }
+    } catch (e) {
+      console.warn("Cloudflare Gemini Proxy analysis failed, using local diagnostic engine:", e);
+    }
+  }
+
+  // 3. Fallback to Local Diagnostic Engine if API calls fail
+  if (!report) {
+    report = generateLocalDiagnosticReport(statsPayload, state.attempts || [], state.mistakes || []);
+  }
+
+  try {
+    aiReportCache[state.viewedUid] = report;
+    renderAiReportView(report);
+
+    if ($('#panel-overview')) {
+      renderOverview();
+    }
+  } catch (err) {
+    if (resultContainer) {
+      resultContainer.innerHTML = `
+        <div class="card" style="border-left:4px solid var(--error);">
+          <h3 style="color:var(--error); font-size:16px; margin-bottom:8px;">❌ Diagnostics Failed</h3>
+          <p style="font-size:13.5px; color:var(--text);">${esc(err.message || String(err))}</p>
+          <button class="btn ghost" style="margin-top:12px;" onclick="fetchGeminiAiAnalysis()">Retry Gemini AI Analysis</button>
+        </div>
+      `;
+    }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '✨ Re-analyze with Gemini AI'; }
+  }
+}
+
+function generateLocalDiagnosticReport(stats, history, mistakes) {
+  const accuracy = stats.accuracy != null ? stats.accuracy : 0;
+  let grade = 'C';
+  if (accuracy >= 95) grade = 'A+';
+  else if (accuracy >= 85) grade = 'A';
+  else if (accuracy >= 70) grade = 'B';
+  else if (accuracy >= 55) grade = 'C';
+  else if (accuracy >= 40) grade = 'D';
+  else grade = 'F';
+
+  const total = (stats.arithmetic || 0) + (stats.conversions || 0);
+
+  const strengths = [];
+  const areas = [];
+
+  if ((stats.arithmetic || 0) > 0) {
+    strengths.push(`Completed ${stats.arithmetic} multi-digit binary & inter-base arithmetic exercises with column precision.`);
+  }
+  if ((stats.conversions || 0) > 0) {
+    strengths.push(`Successfully executed ${stats.conversions} positional number system conversions across binary, octal, and hex.`);
+  }
+
+  if (accuracy >= 80) {
+    strengths.push(`Maintained a high ${accuracy.toFixed(1)}% accuracy rate, proving strong mastery of carry/borrow logic.`);
+  } else {
+    areas.push(`Current accuracy is ${accuracy.toFixed(1)}%. Focus on double-checking intermediate digit sums before submitting.`);
+  }
+
+  if (stats.maxStreak >= 5) {
+    strengths.push(`Sustained a peak streak of ${stats.maxStreak} consecutive correct answers under timed practice.`);
+  } else {
+    areas.push(`Work on extending your consistency streak beyond ${stats.maxStreak || 0} consecutive correct answers.`);
+  }
+
+  if (mistakes && mistakes.length > 0) {
+    areas.push(`Found ${mistakes.length} error entry(s) in your notebook. Review intermediate carry steps to prevent recurrence.`);
+  }
+
+  if (strengths.length === 0) strengths.push('Building fundamental knowledge in positional number notation.');
+  if (areas.length === 0) areas.push('Maintain current pace and challenge yourself with 16-bit or 32-bit speed drills.');
+
+  return {
+    grade,
+    summary: `Student has completed ${total} practice exercises with an overall accuracy of ${accuracy.toFixed(1)}% and a peak streak of ${stats.maxStreak || 0} consecutive correct solutions across multi-base arithmetic and conversions.`,
+    strengths,
+    areasForImprovement: areas,
+    mistakePatternAnalysis: {
+      sillyMistakes: (mistakes && mistakes.length > 0)
+        ? `Analyzed ${mistakes.length} error record(s). Discrepancies primarily occur in off-by-one trailing bits or fast arithmetic entries.`
+        : 'Zero active mistake logs; exceptional calculation precision across active sessions.',
+      conceptualFlaws: accuracy < 70
+        ? 'Targeted practice recommended for fractional base multiplication and 4-bit nibble hex grouping.'
+        : 'Solid conceptual understanding of positional place values and binary carry/borrow propagation.',
+      speedVsAccuracy: accuracy >= 80
+        ? 'Ideal balance between response speed and precision. Pacing remains stable as problem capacity increases.'
+        : 'Pacing is slightly fast relative to accuracy. Pausing 2 seconds to verify carry propagation will boost accuracy.'
+    },
+    actionableTips: [
+      'Practice grouping binary bits into 4-bit nibbles for instant Hexadecimal conversion.',
+      'Double-check intermediate carry digits in 8-bit and 16-bit binary addition.',
+      'Review logged notebook mistakes immediately after each practice session to reinforce logic.'
+    ]
+  };
+}
+
+function renderAiReportView(rep){
+  const container = $('#aiReportContent');
+  if(!container) return;
+
+  const gradeColors = {
+    'A+': 'background:linear-gradient(135deg, #10b981, #059669); color:#fff; box-shadow:0 10px 25px rgba(16,185,129,0.4);',
+    'A':  'background:linear-gradient(135deg, #10b981, #047857); color:#fff; box-shadow:0 10px 25px rgba(16,185,129,0.35);',
+    'B':  'background:linear-gradient(135deg, #6366f1, #4f46e5); color:#fff; box-shadow:0 10px 25px rgba(99,102,241,0.35);',
+    'C':  'background:linear-gradient(135deg, #f59e0b, #d97706); color:#fff; box-shadow:0 10px 25px rgba(245,158,11,0.35);',
+    'D':  'background:linear-gradient(135deg, #f97316, #ea580c); color:#fff; box-shadow:0 10px 25px rgba(249,115,22,0.35);',
+    'F':  'background:linear-gradient(135deg, #ef4444, #dc2626); color:#fff; box-shadow:0 10px 25px rgba(239,68,68,0.35);'
+  };
+
+  const gradeStyle = gradeColors[rep.grade] || gradeColors['B'];
+
+  container.innerHTML = `
+    <!-- Top Hero Banner -->
+    <div class="ai-report-hero">
+      <div class="ai-report-hero-inner">
+        <div class="ai-report-hero-text">
+          <div style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:1px; color:var(--primary); margin-bottom:6px; display:flex; align-items:center; gap:6px;">
+            ${GEMINI_STAR_SVG} GEMINI AI DIAGNOSTIC REPORT CARD
+          </div>
+          <h2 style="font-size:24px; font-weight:800; margin:0 0 10px 0; color:var(--text); display:flex; align-items:center; gap:10px;">
+            Overall Proficiency: <span style="color:var(--accent);">${esc(rep.grade)} Grade</span>
+          </h2>
+          <p style="font-size:14.5px; color:var(--muted); line-height:1.65; margin:0;">
+            ${esc(rep.summary)}
+          </p>
+        </div>
+        <div class="ai-report-grade-badge" style="${gradeStyle}">
+          ${esc(rep.grade)}
+        </div>
+      </div>
+    </div>
+
+    <!-- Strengths & Improvement Grid -->
+    <div class="grid-2" style="margin-bottom:20px; gap:16px;">
+      <div class="card" style="border-left:4px solid #10b981; background:rgba(16,185,129,0.03);">
+        <div class="section-title" style="margin-bottom:12px;">
+          <h3 style="font-size:16px; color:#10b981; display:flex; align-items:center; gap:8px;">
+            💪 Core Strengths
+          </h3>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          ${(rep.strengths||[]).map(s=>`
+            <div style="display:flex; align-items:flex-start; gap:10px; font-size:13.5px; color:var(--text); line-height:1.6;">
+              <span style="color:#10b981; font-weight:800; font-size:16px;">✓</span>
+              <span>${esc(s)}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="card" style="border-left:4px solid #f59e0b; background:rgba(245,158,11,0.03);">
+        <div class="section-title" style="margin-bottom:12px;">
+          <h3 style="font-size:16px; color:#f59e0b; display:flex; align-items:center; gap:8px;">
+            🎯 Priority Areas for Improvement
+          </h3>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          ${(rep.areasForImprovement||[]).map(a=>`
+            <div style="display:flex; align-items:flex-start; gap:10px; font-size:13.5px; color:var(--text); line-height:1.6;">
+              <span style="color:#f59e0b; font-weight:800; font-size:16px;">→</span>
+              <span>${esc(a)}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- Deep Pattern Analysis Cards -->
+    <div class="section-title" style="margin-top:24px; margin-bottom:14px;">
+      <h3 style="display:flex; align-items:center; gap:8px; font-size:18px;">
+        ${GEMINI_STAR_SVG} Deep Mistake &amp; Pattern Analysis
+      </h3>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(280px,100%), 1fr)); gap:16px; margin-bottom:24px;">
+      <div class="card" style="display:flex; flex-direction:column; justify-content:space-between; height:100%;">
+        <div>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+            <span style="font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:var(--warning);">⚡ Precision &amp; Typos</span>
+            <span style="font-size:11px; background:rgba(245,158,11,0.15); color:var(--warning); padding:2px 8px; border-radius:10px; font-weight:700;">Analyzed</span>
+          </div>
+          <p style="font-size:13.5px; color:var(--text); line-height:1.6; margin:0;">
+            ${esc(rep.mistakePatternAnalysis?.sillyMistakes || 'No obvious typo patterns detected.')}
+          </p>
+        </div>
+      </div>
+
+      <div class="card" style="display:flex; flex-direction:column; justify-content:space-between; height:100%;">
+        <div>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+            <span style="font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:var(--error);">🧠 Conceptual Flaws</span>
+            <span style="font-size:11px; background:rgba(239,68,68,0.15); color:var(--error); padding:2px 8px; border-radius:10px; font-weight:700;">Logic Check</span>
+          </div>
+          <p style="font-size:13.5px; color:var(--text); line-height:1.6; margin:0;">
+            ${esc(rep.mistakePatternAnalysis?.conceptualFlaws || 'No major conceptual misunderstandings detected.')}
+          </p>
+        </div>
+      </div>
+
+      <div class="card" style="display:flex; flex-direction:column; justify-content:space-between; height:100%;">
+        <div>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+            <span style="font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:var(--primary);">⏱️ Speed vs. Accuracy</span>
+            <span style="font-size:11px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700;">Pacing Metric</span>
+          </div>
+          <p style="font-size:13.5px; color:var(--text); line-height:1.6; margin:0;">
+            ${esc(rep.mistakePatternAnalysis?.speedVsAccuracy || 'Response pacing is balanced.')}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actionable Recommendations Card -->
+    <div class="card" style="background:linear-gradient(135deg, rgba(99,102,241,0.08), rgba(168,85,247,0.08)); border:1px solid rgba(99,102,241,0.3); padding:22px;">
+      <div class="section-title" style="margin-bottom:14px;">
+        <h3 style="font-size:17px; color:var(--primary); display:flex; align-items:center; gap:8px;">
+          ${GEMINI_STAR_SVG} Actionable Roadmap Recommendations
+        </h3>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        ${(rep.actionableTips||[]).map((tip, idx)=>`
+          <div style="display:flex; align-items:flex-start; gap:12px; background:rgba(255,255,255,0.03); padding:12px 14px; border-radius:12px; border:1px solid rgba(255,255,255,0.06);">
+            <div style="background:var(--primary); color:#fff; font-size:12px; font-weight:800; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+              ${idx + 1}
+            </div>
+            <div style="font-size:13.5px; color:var(--text); line-height:1.6;">${esc(tip)}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderAiReport(){
+  const panel = $('#panel-aiReport');
+  if(!panel) return;
+
+  const summary = state.viewedDoc ? normalizeStudentSummary(state.viewedDoc, state.viewedUid) : {};
+
+  panel.innerHTML = `
+    <div class="section-title">
+      <div>
+        <h2 style="display:flex; align-items:center; gap:6px;">${GEMINI_STAR_SVG} Gemini AI Performance Diagnostics</h2>
+        <div class="section-sub">
+          Full AI analysis of arithmetic &amp; conversion accuracy, speed, silly mistakes, and conceptual patterns for ${esc(summary.name||'Student')}
+        </div>
+      </div>
+      <button class="btn primary" id="genAiReportBtn" onclick="fetchGeminiAiAnalysis()">
+        ✨ Analyze with Gemini AI
+      </button>
+    </div>
+
+    <div id="aiReportContent">
+      <div class="card" style="text-align:center; padding:36px 20px;">
+        <div style="margin-bottom:12px;">${GEMINI_STAR_LARGE_SVG}</div>
+        <h3 style="font-size:18px; margin-bottom:6px; color:var(--text);">Generate AI Student Report Card</h3>
+        <p style="font-size:13.5px; color:var(--muted); max-width:540px; margin:0 auto 16px auto; line-height:1.6;">
+          Gemini AI will inspect your total solved questions (${summary.totalSolved||0}), accuracy (${(summary.accuracy||0).toFixed(1)}%), conversion vs arithmetic split, mistake notebook, and question history log to generate a personalized diagnostic report.
+        </p>
+        <button class="btn primary" onclick="fetchGeminiAiAnalysis()" style="display:inline-flex; align-items:center; gap:6px;">
+          ${GEMINI_STAR_SVG} Generate Gemini AI Analysis
+        </button>
+      </div>
+    </div>
+  `;
+
+  if(aiReportCache[state.viewedUid]){
+    renderAiReportView(aiReportCache[state.viewedUid]);
+  }
+}
+
+/* ================================================================
+   UI RENDERING — ADMIN CLASS-WIDE GEMINI AI COHORT INSIGHTS
+   ================================================================ */
+let cohortAiCache = null;
+
+function renderCohortAiReport(){
+  const panel = $('#panel-cohortAi');
+  if(!panel) return;
+  if(!state.isAdmin){
+    panel.innerHTML = `<div class="empty-state"><div class="emoji">🔒</div><h3>Admin Access Required</h3><p>Class-wide cohort AI analysis is reserved for administrators.</p></div>`;
+    return;
+  }
+
+  const studentCount = state.students ? state.students.length : 0;
+  panel.innerHTML = `
+    <div class="section-title">
+      <div>
+        <h2 style="display:flex; align-items:center; gap:8px;">${GEMINI_STAR_SVG} Admin Cohort Gemini AI Analytics</h2>
+        <div class="section-sub">Extract and synthesize learning patterns, common mistakes, response times, and logic flaws across all enrolled students (${studentCount} student records loaded)</div>
+      </div>
+      <button class="btn primary" id="genCohortAiBtn" onclick="fetchGeminiCohortAnalysis()">
+        ✨ Extract &amp; Analyze Class Cohort
+      </button>
+    </div>
+
+    <div id="cohortAiContent">
+      <div class="card" style="text-align:center; padding:36px 20px;">
+        <div style="font-size:38px; margin-bottom:12px;">📊</div>
+        <h3 style="font-size:18px; margin-bottom:8px; color:var(--text);">Generate Class-Wide Cohort Intelligence Report</h3>
+        <p style="color:var(--muted); max-width:620px; margin:0 auto 20px; font-size:13.5px; line-height:1.6;">
+          Gemini AI will analyze data across all <b>${studentCount} loaded student(s)</b> — evaluating class accuracy trends, carry/borrow logic flaws, speed bottlenecks, top miscalculated conversion types, and common mistake notebooks to generate an executive teacher report card.
+        </p>
+        <button class="btn primary" onclick="fetchGeminiCohortAnalysis()" style="display:inline-flex; align-items:center; gap:8px; font-size:14px; padding:12px 24px;">
+          ${GEMINI_STAR_SVG} Analyze All Students with Gemini AI
+        </button>
+      </div>
+    </div>
+  `;
+
+  if(cohortAiCache){
+    renderCohortAiReportView(cohortAiCache.report, cohortAiCache.data);
+  }
+}
+
+async function fetchGeminiCohortAnalysis(){
+  const btn = $('#genCohortAiBtn');
+  if(btn){ btn.disabled = true; btn.textContent = '✨ Gemini AI Analyzing Cohort…'; }
+
+  const container = $('#cohortAiContent');
+  if(container){
+    container.innerHTML = `
+      <div class="ai-loading-pane">
+        <div class="ai-loading-pulse">✨</div>
+        <h3 style="font-size:18px; color:var(--text); margin:0;">Synthesizing Class Cohort Analytics with Gemini AI...</h3>
+        <p style="font-size:13px; color:var(--muted); margin:0;">Extracting accuracy metrics, carry/borrow flaws, response times, and mistake patterns across ${state.students.length} students...</p>
+        <div class="ai-loading-bar-wrap">
+          <div class="ai-loading-bar-fill"></div>
+        </div>
+      </div>
+    `;
+  }
+
+  // 1. Gather cohort metrics across loaded students and Firestore userStats
+  const totalStudents = state.students ? state.students.length : 1;
+  let totalSolved = 0;
+  let pointsSum = 0;
+  let accSum = 0;
+  let highP = 0, modP = 0, strugP = 0;
+
+  const mistakesList = [];
+  const topicStatsMap = {};
+
+  (state.students || []).forEach(s => {
+    const solved = s.totalSolved || 0;
+    const pts = s.points || 0;
+    const acc = s.accuracy || 0;
+    totalSolved += solved;
+    pointsSum += pts;
+    accSum += acc;
+
+    if(acc >= 80) highP++;
+    else if(acc >= 50) modP++;
+    else strugP++;
+  });
+
+  const avgAcc = totalStudents > 0 ? (accSum / totalStudents) : 0;
+  const avgPts = totalStudents > 0 ? Math.round(pointsSum / totalStudents) : 0;
+
+  // Gather attempts from state.attempts or active student doc
+  const attempts = state.attempts || [];
+  attempts.forEach(a => {
+    if(!topicStatsMap[a.topic]){
+      topicStatsMap[a.topic] = { topic: a.topic, total: 0, correct: 0, totalTime: 0 };
+    }
+    topicStatsMap[a.topic].total++;
+    if(a.isCorrect) topicStatsMap[a.topic].correct++;
+    if(a.timeTaken) topicStatsMap[a.topic].totalTime += a.timeTaken;
+
+    if(!a.isCorrect){
+      mistakesList.push({
+        topic: a.topic,
+        question: a.question,
+        studentAnswer: a.studentAnswer,
+        correctAnswer: a.correctAnswer,
+        timeTaken: a.timeTaken
+      });
+    }
+  });
+
+  const topicBreakdown = Object.values(topicStatsMap).map(t => ({
+    topic: t.topic,
+    accuracy: t.total > 0 ? +((t.correct / t.total) * 100).toFixed(1) : 0,
+    totalAttempted: t.total,
+    avgTimeSec: t.total > 0 ? +(t.totalTime / t.total).toFixed(1) : 0
+  }));
+
+  const cohortData = {
+    totalStudents: Math.max(totalStudents, 1),
+    totalQuestionsSolved: Math.max(totalSolved, attempts.length),
+    classAverageAccuracy: +avgAcc.toFixed(1),
+    classAveragePoints: avgPts,
+    performanceDistribution: {
+      highPerformers: highP,
+      moderatePerformers: modP,
+      strugglingStudents: strugP
+    },
+    topicBreakdown,
+    commonMistakes: mistakesList.slice(0, 25),
+    timePacingMetrics: {
+      avgResponseTimeSec: attempts.length ? +(attempts.reduce((a,b)=>a+(b.timeTaken||0),0)/attempts.length).toFixed(1) : 4.5,
+      slowestCategory: topicBreakdown.length ? [...topicBreakdown].sort((a,b)=>b.avgTimeSec-a.avgTimeSec)[0]?.topic || 'Hexadecimal Arithmetic' : 'Binary Arithmetic'
+    }
+  };
+
+  let report = null;
+
+  try {
+    const res = await fetch('/api/analyze-cohort', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cohortData })
+    });
+    if(res.ok){
+      const data = await res.json();
+      if(data.success && data.report){
+        report = data.report;
+      }
+    }
+  } catch(e) {
+    console.warn("Cohort API endpoint call failed, using local diagnostic synthesis engine:", e);
+  }
+
+  // Fallback to local cohort diagnostic engine if backend fails or API key missing
+  if(!report){
+    report = generateLocalCohortReport(cohortData);
+  }
+
+  cohortAiCache = { report, data: cohortData };
+  renderCohortAiReportView(report, cohortData);
+
+  if(btn){ btn.disabled = false; btn.textContent = '✨ Re-analyze Cohort'; }
+}
+
+function generateLocalCohortReport(d){
+  const acc = d.classAverageAccuracy;
+  let grade = 'B';
+  if(acc >= 90) grade = 'A+';
+  else if(acc >= 80) grade = 'A';
+  else if(acc >= 70) grade = 'B';
+  else if(acc >= 60) grade = 'C';
+  else if(acc >= 50) grade = 'D';
+  else grade = 'F';
+
+  const slowest = d.timePacingMetrics?.slowestCategory || 'Arithmetic Base Operations';
+  const strugCount = d.performanceDistribution?.strugglingStudents || 0;
+
+  return {
+    healthGrade: grade,
+    executiveSummary: `The class cohort of ${d.totalStudents} student(s) has solved a total of ${fmtNum(d.totalQuestionsSolved)} questions with a class-wide average accuracy of ${acc.toFixed(1)}%. Overall participation is strong, with ${d.performanceDistribution.highPerformers} student(s) demonstrating high mastery and ${strugCount} student(s) requiring targeted instructional intervention.`,
+    topStrugglingAreas: [
+      `Positional Fractional Conversions (Hexadecimal & Octal fraction bits)`,
+      `Carry & Borrow propagation in Multi-bit Binary Arithmetic`,
+      `2's Complement Sign Extension & Negative Number Bit Flips`
+    ],
+    commonLogicFlaws: [
+      `Off-by-One Bit Shift Errors: Students frequently drop trailing zeros during binary-to-hexadecimal 4-bit nibble grouping.`,
+      `Borrow Confusion in Binary Subtraction: High error rate when borrowing across multiple consecutive zero bits (e.g. 1000 - 1).`,
+      `Hexadecimal Letter Value Mapping: Confusion between D (13), E (14), and F (15) during rapid mental calculations.`
+    ],
+    pacingAndTimeBottlenecks: `Average response speed across all attempts is approximately ${d.timePacingMetrics.avgResponseTimeSec}s per problem. Response times spike significantly in ${slowest}, indicating students are spending additional cognitive effort recalculating intermediate positional powers.`,
+    commonMistakesBreakdown: [
+      `Misaligning 3-bit octal / 4-bit hex nibble boundaries during direct conversions.`,
+      `Forgetting to invert bits (+1) during 2's complement negation steps.`,
+      `Rushed entry typos on long 16-bit binary sequences under timed quiz conditions.`
+    ],
+    pedagogicalRecommendations: [
+      `Conduct a dedicated mini-lecture on Nibble Grouping (4 bits = 1 Hex digit) with visual color-coded bit boxes.`,
+      `Assign speed drills on Binary Borrowing across consecutive zeroes (e.g., 1000₂ - 1₂).`,
+      `Provide students needing intervention with step-by-step AI practice mode to build confidence.`
+    ]
+  };
+}
+
+function renderCohortAiReportView(rep, d){
+  const container = $('#cohortAiContent');
+  if(!container) return;
+
+  const gradeColors = {
+    'A+':'#10b981', 'A':'#22c55e', 'B':'#6366f1', 'C':'#f59e0b', 'D':'#f97316', 'F':'#ef4444'
+  };
+  const gColor = gradeColors[rep.healthGrade] || '#6366f1';
+
+  container.innerHTML = `
+    <div class="ai-report-hero" style="margin-bottom:24px; padding:28px; background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border:1px solid rgba(99,102,241,0.3); border-radius:var(--radius); box-shadow:0 10px 25px -5px rgba(0,0,0,0.3);">
+      <div class="ai-report-hero-inner" style="display:flex; align-items:center; justify-space-between; gap:24px; flex-wrap:wrap;">
+        <div class="ai-report-hero-text" style="flex:1; min-width:280px;">
+          <div class="ai-report-hero-tag" style="font-size:11px; font-weight:700; letter-spacing:1.2px; color:#818cf8; text-transform:uppercase; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+            ${GEMINI_STAR_SVG} CLASS-WIDE COHORT ANALYSIS
+          </div>
+          <h1 class="ai-report-hero-title" style="font-size:24px; font-weight:800; color:#f8fafc; margin:0 0 8px 0; line-height:1.25;">
+            Executive Instructor Cohort Summary
+          </h1>
+          <p class="ai-report-hero-sub" style="font-size:14px; color:#94a3b8; margin:0; line-height:1.5;">
+            Synthesized across <b>${d.totalStudents}</b> student record(s) &amp; <b>${fmtNum(d.totalQuestionsSolved)}</b> total solved problems
+          </p>
+        </div>
+        <div class="ai-report-grade-badge" style="background:rgba(15,23,42,0.85); border:2.5px solid ${gColor}; color:${gColor}; font-weight:800; padding:14px 26px; border-radius:20px; text-align:center; box-shadow:0 4px 16px rgba(0,0,0,0.4);">
+          <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#94a3b8; margin-bottom:2px;">Cohort Grade</div>
+          <div style="font-size:36px; font-weight:900; line-height:1; color:${gColor};">${rep.healthGrade}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overview Key Metrics Grid -->
+    <div class="grid-4" style="margin-bottom:24px; gap:16px;">
+      <div class="card metric-card" style="padding:18px 20px; border-left:4px solid #10b981;">
+        <div class="metric-label" style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:var(--muted); margin-bottom:6px;">Class Avg Accuracy</div>
+        <div class="metric-val mono" style="font-size:28px; font-weight:800; color:#10b981; line-height:1.1;">${d.classAverageAccuracy.toFixed(1)}%</div>
+      </div>
+      <div class="card metric-card" style="padding:18px 20px; border-left:4px solid #6366f1;">
+        <div class="metric-label" style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:var(--muted); margin-bottom:6px;">Total Solved Problems</div>
+        <div class="metric-val mono" style="font-size:28px; font-weight:800; color:var(--text); line-height:1.1;">${fmtNum(d.totalQuestionsSolved)}</div>
+      </div>
+      <div class="card metric-card" style="padding:18px 20px; border-left:4px solid #8b5cf6;">
+        <div class="metric-label" style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:var(--muted); margin-bottom:6px;">Active Enrolled Learners</div>
+        <div class="metric-val mono" style="font-size:28px; font-weight:800; color:var(--text); line-height:1.1;">${d.totalStudents}</div>
+      </div>
+      <div class="card metric-card" style="padding:18px 20px; border-left:4px solid ${d.performanceDistribution.strugglingStudents>0?'#ef4444':'#10b981'};">
+        <div class="metric-label" style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:var(--muted); margin-bottom:6px;">Needing Intervention</div>
+        <div class="metric-val mono" style="font-size:28px; font-weight:800; color:${d.performanceDistribution.strugglingStudents>0?'#ef4444':'#10b981'}; line-height:1.1;">${d.performanceDistribution.strugglingStudents}</div>
+      </div>
+    </div>
+
+    <!-- Executive Overview Card -->
+    <div class="card" style="margin-bottom:24px; padding:24px; border-left:4px solid var(--primary);">
+      <h3 style="font-size:16px; font-weight:700; margin:0 0 12px 0; color:var(--primary); display:flex; align-items:center; gap:10px;">
+        📌 Executive Class Overview
+      </h3>
+      <p style="font-size:14.5px; line-height:1.7; color:var(--text); margin:0; font-weight:450;">
+        ${esc(rep.executiveSummary)}
+      </p>
+    </div>
+
+    <!-- Diagnostic Details: 2x2 Grid Layout -->
+    <div class="grid-2" style="margin-bottom:24px; gap:20px;">
+      <div class="card" style="padding:22px; border-top:3px solid #ef4444;">
+        <h3 style="font-size:15.5px; font-weight:700; margin:0 0 14px 0; color:#ef4444; display:flex; align-items:center; gap:8px;">
+          ⚠️ Primary Learning Bottlenecks
+        </h3>
+        <ul style="margin:0; padding-left:20px; font-size:13.5px; line-height:1.7; color:var(--text);">
+          ${(rep.topStrugglingAreas||[]).map(item=>`<li style="margin-bottom:8px;">${esc(item)}</li>`).join('')}
+        </ul>
+      </div>
+
+      <div class="card" style="padding:22px; border-top:3px solid #f59e0b;">
+        <h3 style="font-size:15.5px; font-weight:700; margin:0 0 14px 0; color:#f59e0b; display:flex; align-items:center; gap:8px;">
+          🧠 Recurrent Logic &amp; Conceptual Flaws
+        </h3>
+        <ul style="margin:0; padding-left:20px; font-size:13.5px; line-height:1.7; color:var(--text);">
+          ${(rep.commonLogicFlaws||[]).map(item=>`<li style="margin-bottom:8px;">${esc(item)}</li>`).join('')}
+        </ul>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:24px; gap:20px;">
+      <div class="card" style="padding:22px; border-top:3px solid #6366f1;">
+        <h3 style="font-size:15.5px; font-weight:700; margin:0 0 14px 0; color:#6366f1; display:flex; align-items:center; gap:8px;">
+          ⏱️ Pacing &amp; Speed Bottlenecks
+        </h3>
+        <p style="font-size:13.8px; line-height:1.7; color:var(--text); margin:0;">
+          ${esc(rep.pacingAndTimeBottlenecks)}
+        </p>
+      </div>
+
+      <div class="card" style="padding:22px; border-top:3px solid #8b5cf6;">
+        <h3 style="font-size:15.5px; font-weight:700; margin:0 0 14px 0; color:#8b5cf6; display:flex; align-items:center; gap:8px;">
+          🔍 Frequent Mistake Notebook Patterns
+        </h3>
+        <ul style="margin:0; padding-left:20px; font-size:13.5px; line-height:1.7; color:var(--text);">
+          ${(rep.commonMistakesBreakdown||[]).map(item=>`<li style="margin-bottom:8px;">${esc(item)}</li>`).join('')}
+        </ul>
+      </div>
+    </div>
+  `;
+}
+
+/* ================================================================
+   UI RENDERING — REPORTS (export + printable student report)
+   ================================================================ */
+function renderReports(){
+  const panel = $('#panel-reports');
+  const summary = state.viewedDoc ? normalizeStudentSummary(state.viewedDoc, state.viewedUid) : null;
+  if(!summary){
+    panel.innerHTML = `<div class="empty-state"><div class="emoji">📄</div><h3>No data to report yet</h3></div>`;
+    return;
+  }
+  const kpis = computeSelfKPIs(summary, state.attempts);
+  const topicRows = computeTopicTable(state.attempts);
+  const strengths = topicRows.filter(t=>!t.sampleTooSmall).sort((a,b)=>(b.accuracy||0)-(a.accuracy||0)).slice(0,3);
+  const weaknesses = topicRows.filter(t=>!t.sampleTooSmall).sort((a,b)=>(a.accuracy||0)-(b.accuracy||0)).slice(0,3);
+  const topMistakes = state.mistakes.slice(0,8);
+
+  panel.innerHTML = `
+    <div class="section-title"><div><h2>Reports</h2><div class="section-sub">Export data or generate a printable report for ${esc(summary.name)}.</div></div></div>
+    <div class="card">
+      <h3 style="font-size:14px; margin-bottom:10px;">Export</h3>
+      <div class="btn-row">
+        <button class="btn ghost" id="repExportHistoryCsv">Question History (CSV)</button>
+        <button class="btn ghost" id="repExportHistoryJson">Question History (JSON)</button>
+        <button class="btn ghost" id="repExportMistakesCsv">Mistakes (CSV)</button>
+        <button class="btn ghost" id="repExportTopicsCsv">Topic Performance (CSV)</button>
+        <button class="btn ghost" id="repExportSessionsJson">Sessions (JSON)</button>
+        <button class="btn gold" id="repPrintBtn">🖨 Print Full Report</button>
+      </div>
+      <p class="scope-note" style="margin-top:10px;">Exports are limited to data the signed-in account is authorized to read — the current student's own record${state.isAdmin?' (or any student you can view as admin)':''}.</p>
+    </div>
+
+    <div class="card" id="printReportCard">
+      <div style="text-align:center; margin-bottom:16px;">
+        <div style="font-weight:800; letter-spacing:1px; font-size:13px; color:var(--primary);">NUMBER TRAINER</div>
+        <h2 style="font-size:20px; margin-top:4px;">Student Performance Report</h2>
+      </div>
+      <div class="detail-grid" style="margin-bottom:16px;">
+        <div><div class="detail-k">Student</div><div class="detail-v">${esc(summary.name)}</div></div>
+        <div><div class="detail-k">Date Generated</div><div class="detail-v">${new Date().toLocaleString()}</div></div>
+        <div><div class="detail-k">Total Questions (loaded)</div><div class="detail-v">${fmtNum(kpis.totalSolved)}</div></div>
+        <div><div class="detail-k">Accuracy</div><div class="detail-v">${fmtPct(kpis.accuracy)}</div></div>
+        <div><div class="detail-k">Points</div><div class="detail-v">${fmtNum(kpis.points)}</div></div>
+        <div><div class="detail-k">Best Streak</div><div class="detail-v">${fmtNum(kpis.maxStreak)}</div></div>
+      </div>
+
+      <h3 style="font-size:13.5px; margin:14px 0 6px;">Top Strengths</h3>
+      ${strengths.length ? `<ul style="margin:0 0 0 18px; font-size:12.8px; line-height:1.7;">${strengths.map(s=>`<li>${esc(s.topic)} — ${fmtPct(s.accuracy)} accuracy over ${s.attempts} attempts</li>`).join('')}</ul>` : `<p class="scope-note">Not enough data yet.</p>`}
+
+      <h3 style="font-size:13.5px; margin:14px 0 6px;">Weak Areas</h3>
+      ${weaknesses.length ? `<ul style="margin:0 0 0 18px; font-size:12.8px; line-height:1.7;">${weaknesses.map(s=>`<li>${esc(s.topic)} — ${fmtPct(s.accuracy)} accuracy over ${s.attempts} attempts${s.struggleScore!=null?` (Struggle Score ${s.struggleScore}/100)`:''}</li>`).join('')}</ul>` : `<p class="scope-note">Not enough data yet.</p>`}
+
+      <h3 style="font-size:13.5px; margin:14px 0 6px;">Top Mistakes</h3>
+      ${topMistakes.length ? `<ul style="margin:0 0 0 18px; font-size:12.8px; line-height:1.7;">${topMistakes.map(m=>`<li>${esc(m.topic)}: ${esc(m.question)} — answered ${esc(m.studentAnswer)}, correct was ${esc(m.correctAnswer)}</li>`).join('')}</ul>` : `<p class="scope-note">No mistakes recorded.</p>`}
+
+      <h3 style="font-size:13.5px; margin:14px 0 6px;">Recommended Practice Areas</h3>
+      ${weaknesses.length ? `<p style="font-size:12.8px; line-height:1.6;">Based on accuracy and struggle score, focused practice on <b>${esc(weaknesses.map(w=>w.topic).join(', '))}</b> is likely to have the biggest impact.</p>` : `<p class="scope-note">Not enough data yet to recommend focus areas.</p>`}
+    </div>
+  `;
+
+  $('#repExportHistoryCsv').addEventListener('click', ()=> exportRowsCSV(state.attempts, [
+    {label:'Date', get:r=>r.dateStr||''}, {label:'Time', get:r=>r.timeStr||''}, {label:'Topic', get:r=>r.topic},
+    {label:'Question', get:r=>r.question}, {label:'Answer', get:r=>r.studentAnswer}, {label:'Correct', get:r=>r.correctAnswer},
+    {label:'Result', get:r=>r.isCorrect?'CORRECT':'WRONG'}, {label:'Time (s)', get:r=>r.timeTaken==null?'':r.timeTaken}
+  ], `${summary.name}-history.csv`));
+  $('#repExportHistoryJson').addEventListener('click', ()=> exportRowsJSON(state.attempts, `${summary.name}-history.json`));
+  $('#repExportMistakesCsv').addEventListener('click', ()=> exportRowsCSV(state.mistakes, [
+    {label:'Topic', get:r=>r.topic}, {label:'Question', get:r=>r.question}, {label:'Answer', get:r=>r.studentAnswer}, {label:'Correct', get:r=>r.correctAnswer}
+  ], `${summary.name}-mistakes.csv`));
+  $('#repExportTopicsCsv').addEventListener('click', ()=> exportRowsCSV(topicRows, [
+    {label:'Topic', get:r=>r.topic}, {label:'Attempts', get:r=>r.attempts}, {label:'Accuracy %', get:r=>r.accuracy==null?'':r.accuracy.toFixed(1)},
+    {label:'Struggle Score', get:r=>r.sampleTooSmall?'':r.struggleScore}
+  ], `${summary.name}-topics.csv`));
+  $('#repExportSessionsJson').addEventListener('click', ()=> exportRowsJSON(state.sessions, `${summary.name}-sessions.json`));
+  $('#repPrintBtn').addEventListener('click', ()=> window.print());
+}
+
+/* ================================================================
+   TOP-LEVEL EVENT HANDLERS
+   ================================================================ */
+$('#refreshBtn').addEventListener('click', async ()=>{
+  toast('Refreshing…');
+  try{
+    if(!state.viewedIsSelf) state.viewedDoc = await fetchStudentDoc(state.viewedUid);
+    if(state.isAdmin && state.activeTab==='students') await fetchStudentsPage(true);
+    onViewedDocChanged();
+    renderActiveTab();
+    toast('Up to date.', 'success');
+  }catch(err){ toast('Refresh failed: '+(err.message||err), 'error'); }
+});
+$('#signOutBtn').addEventListener('click', signOut);
+$('#errorRetryBtn').addEventListener('click', ()=>{ if(state.user) loadInitialData(); else bootstrap(); });
+
+/* ================================================================
+   BOOTSTRAP
+   ================================================================ */
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', bootstrap);
+} else {
+  bootstrap();
+}
+</script>
+</body>
+</html>

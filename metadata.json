@@ -1,0 +1,9 @@
+{
+  "name": "Number System Converter",
+  "description": "Convert Binary, Decimal, Octal and Hexadecimal numbers instantly with a fast, modern and easy-to-use converter.",
+  "requestFramePermissions": [],
+    "majorCapabilities": [
+          "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+            ]
+            }
+    
