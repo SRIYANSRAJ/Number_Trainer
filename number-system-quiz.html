@@ -820,11 +820,13 @@
 
     .big-number {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 42px;
+      font-size: clamp(20px, 4vw, 38px);
       font-weight: 800;
       color: #ffffff;
       word-break: break-all;
-      letter-spacing: -1.5px;
+      letter-spacing: -0.5px;
+      line-height: 1.3;
+      padding: 10px;
     }
 
     /* Interaction */
@@ -833,9 +835,9 @@
       background: rgba(30, 41, 59, 0.85);
       border: 2px solid rgba(255, 255, 255, 0.15);
       color: #ffffff;
-      padding: 18px;
+      padding: 16px;
       border-radius: 18px;
-      font-size: 22px;
+      font-size: clamp(15px, 2.5vw, 22px);
       text-align: center;
       font-family: monospace;
       outline: none;
@@ -1164,6 +1166,7 @@
           <option value="8" selected>8-Bit</option>
           <option value="16">16-Bit</option>
           <option value="32">32-Bit</option>
+          <option value="64">64-Bit</option>
         </select>
       </div>
       <div class="field-group">
@@ -1297,9 +1300,18 @@
     let questionStartTime = Date.now();
 
     function randInt(bits) {
-      const max = Math.pow(2, bits);
-      const min = Math.pow(2, bits - 4) || 0;
-      return Math.floor(Math.random() * (max - min) + min);
+      if (bits <= 30) {
+        const max = Math.pow(2, bits);
+        const min = Math.pow(2, bits - 4) || 0;
+        return BigInt(Math.floor(Math.random() * (max - min) + min));
+      }
+      const hexDigits = Math.ceil(bits / 4);
+      let hex = "";
+      for (let i = 0; i < hexDigits; i++) {
+        const digit = (i === 0) ? (Math.floor(Math.random() * 8) + 8) : Math.floor(Math.random() * 16);
+        hex += digit.toString(16);
+      }
+      return BigInt("0x" + hex);
     }
 
     /**

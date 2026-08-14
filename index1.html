@@ -281,13 +281,22 @@
   }
   @keyframes cardIn{ from{opacity:0; transform:translateX(24px);} to{opacity:1; transform:translateX(0);} }
 
-  .problem-scroll{ width:100%; overflow-x:auto; overflow-y:hidden; padding-bottom:4px; }
-  .problem-scroll::-webkit-scrollbar{ height:6px; }
-  .problem-scroll::-webkit-scrollbar-thumb{ background:var(--border); border-radius:6px; }
+  .problem-scroll{
+    width:100%;
+    overflow-x:auto;
+    overflow-y:hidden;
+    padding-bottom:10px;
+    -webkit-overflow-scrolling:touch;
+    scroll-behavior:smooth;
+  }
+  .problem-scroll::-webkit-scrollbar{ height:8px; }
+  .problem-scroll::-webkit-scrollbar-thumb{ background:var(--primary); border-radius:6px; }
+  .problem-scroll::-webkit-scrollbar-track{ background:var(--bg-soft); border-radius:6px; }
 
   .bit-row{
     display:flex; align-items:center; justify-content:flex-end;
     gap:var(--box-gap); margin:4px 0;
+    min-width:100%; width:max-content;
   }
   .row-label{
     width:var(--label-width); min-width:var(--label-width);
@@ -301,13 +310,13 @@
     display:flex; align-items:center; justify-content:center;
     background:var(--bg-soft); border:1.5px solid var(--border);
     border-radius:8px; font-family:var(--font-mono);
-    font-size:calc(var(--box-size) * 0.42); font-weight:700;
+    font-size:max(11px, calc(var(--box-size) * 0.45)); font-weight:700;
     color:var(--text); flex-shrink:0; user-select:none;
     transition: transform .15s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;
   }
 
   .divider-line{
-    width:100%; max-width:100%; height:3px; background:var(--text);
+    min-width:100%; width:max-content; height:3px; background:var(--text);
     margin:10px 0 14px; border-radius:2px; opacity:.85;
   }
 
@@ -331,6 +340,7 @@
   .indicator-row{
     display:flex; align-items:center; justify-content:flex-end;
     gap:var(--box-gap); margin-bottom:2px; min-height:26px; position:relative;
+    min-width:100%; width:max-content;
   }
   .indicator-box{
     width:var(--box-size); min-width:var(--box-size); flex-shrink:0;
@@ -369,16 +379,17 @@
   }
 
   .single-answer-input{
-    min-width: 200px;
-    max-width: 440px;
-    height: 44px;
+    width: 100%;
+    min-width: 240px;
+    max-width: 100%;
+    height: 46px;
     font-family: var(--font-mono);
-    font-size: 18px;
+    font-size: clamp(13px, 2.5vw, 18px);
     font-weight: 700;
-    letter-spacing: 2px;
+    letter-spacing: 1.5px;
     text-align: center;
-    padding: 0 12px;
-    border-radius: var(--radius-sm);
+    padding: 0 14px;
+    border-radius: 12px;
     border: 2px solid var(--border);
     background: var(--card);
     color: var(--text);
@@ -1770,7 +1781,7 @@ function computeBoxSize(columnCount) {
   const gap = 4;
   const labelWidth = 34;
   let size = Math.floor((available - labelWidth - gap * columnCount) / columnCount);
-  size = Math.max(14, Math.min(44, size));
+  size = Math.max(20, Math.min(44, size));
   document.documentElement.style.setProperty('--box-size', size + 'px');
   document.documentElement.style.setProperty('--box-gap', Math.max(2, Math.min(6, size / 8)) + 'px');
 }
@@ -2193,6 +2204,13 @@ function renderQuestion(question) {
   $('#scoreDisplay').innerHTML = '';
   $('#sizeDisplay').textContent = question.size + (question.base === 2 ? ' bit' : ' digit') + (question.size > 1 ? 's' : '');
   updateControlButtonsState();
+
+  const problemScroll = $('.problem-scroll');
+  if (problemScroll) {
+    setTimeout(() => {
+      problemScroll.scrollLeft = problemScroll.scrollWidth;
+    }, 50);
+  }
 
   // Prefetch Gemini AI solution in background immediately upon question generation
   prefetchArithmeticAiSolution(question);
