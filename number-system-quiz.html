@@ -1222,7 +1222,7 @@
         <span>Next Question →</span>
       </button>
       <button class="btn-action btn-ai-main" id="quizAiSolBtn" onclick="openQuizAiModal()" style="display:none;">
-        <span>✨ AI Solution</span>
+        <span>🎬 Detailed Animation</span>
       </button>
     </div>
 
@@ -1425,7 +1425,7 @@
       if (btnVerifyTxt) btnVerifyTxt.textContent = "Check Answer";
 
       // Prefetch Gemini AI step-by-step conversion solution in background immediately
-      prefetchQuizAiSolution(currentQ);
+      
 
       questionStartTime = Date.now();
       setTimeout(() => { ansInp.focus(); }, 50);
@@ -1711,32 +1711,15 @@ CRITICAL FORMATTING INSTRUCTIONS:
     }
 
     function openQuizAiModal() {
-      const overlay = document.getElementById('quizAiModalOverlay');
-      if (!overlay) return;
-      overlay.style.display = 'flex';
-      overlay.classList.add('show');
+  if (!currentQ) return;
+  const qStr = currentQ.qStr.replace('.', '');
+  if (qStr.length > 8) {
+    alert("Detailed visual animation is only available for questions up to 8 digits.");
+    return;
+  }
+  window.location.href = `learning.html?detailed=true&mode=conversion&from=${currentQ.sB}&to=${currentQ.tB}&q=${encodeURIComponent(currentQ.qStr)}`;
+}
 
-      const body = document.getElementById('quizAiModalBody');
-      if (!currentQ) {
-        body.innerHTML = '<p>No active question found.</p>';
-        return;
-      }
-
-      body.innerHTML = `
-        <div style="text-align:center; padding:30px;">
-          <div style="font-size:16px; font-weight:700; color:var(--primary);">✨ Gemini AI is generating step-by-step solution...</div>
-          <div style="font-size:13px; color:var(--item-subtext, #64748b); margin-top:8px;">Analyzing place values & base conversion steps</div>
-        </div>
-      `;
-
-      if (!currentQ.aiSolutionPromise) prefetchQuizAiSolution(currentQ);
-
-      currentQ.aiSolutionPromise.then(solutionMd => {
-        body.innerHTML = formatMarkdownToHTML(solutionMd || generateFallbackConversionExplanation(currentQ));
-      }).catch(() => {
-        body.innerHTML = formatMarkdownToHTML(generateFallbackConversionExplanation(currentQ));
-      });
-    }
 
     function closeQuizAiModal() {
       const overlay = document.getElementById('quizAiModalOverlay');
