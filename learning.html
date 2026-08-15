@@ -8,11 +8,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-<!-- Firebase SDK & Route Protection Script -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="script.js"></script>
 <style>
 /* ============================================================
    NUMBER SYSTEMS — visual classroom
@@ -771,25 +766,11 @@ function hexToOct(hexStr) { return binToOct(hexToBin(hexStr)); }
 // ---- Column addition with explicit carry trail ----
 // aStr, bStr: integer digit strings in `base` (no point, right-aligned by caller)
 function addColumns(aStr, bStr, base) {
-  // align by radix point
-  let aParts = aStr.split('.');
-  let bParts = bStr.split('.');
-  let fracLen = Math.max(aParts[1] ? aParts[1].length : 0, bParts[1] ? bParts[1].length : 0);
-  let intLen = Math.max(aParts[0].length, bParts[0].length);
-  
-  aStr = padLeft(aParts[0], intLen);
-  if (fracLen > 0) aStr += '.' + (aParts[1] || '').padEnd(fracLen, '0');
-  
-  bStr = padLeft(bParts[0], intLen);
-  if (fracLen > 0) bStr += '.' + (bParts[1] || '').padEnd(fracLen, '0');
-
+  const len = Math.max(aStr.length, bStr.length);
+  aStr = padLeft(aStr, len); bStr = padLeft(bStr, len);
   const cols = [];
   let carry = 0;
-  for (let i = aStr.length - 1; i >= 0; i--) {
-    if (aStr[i] === '.') {
-      cols.unshift({ isPoint: true, char: '.' });
-      continue;
-    }
+  for (let i = len - 1; i >= 0; i--) {
     const a = digitVal(aStr[i]), b = digitVal(bStr[i]);
     const total = a + b + carry;
     const resultDigit = total % base;
@@ -797,31 +778,18 @@ function addColumns(aStr, bStr, base) {
     cols.unshift({ a, b, carryIn: carry, total, resultDigit, carryOut });
     carry = carryOut;
   }
-  let resultStr = cols.map(c => c.isPoint ? '.' : valDigit(c.resultDigit)).join("");
+  let resultStr = cols.map(c => valDigit(c.resultDigit)).join("");
   if (carry) resultStr = valDigit(carry) + resultStr;
   return { cols, finalCarry: carry, resultStr };
 }
 
 // ---- Column subtraction with explicit borrow trail ----
 function subColumns(aStr, bStr, base) {
-  let aParts = aStr.split('.');
-  let bParts = bStr.split('.');
-  let fracLen = Math.max(aParts[1] ? aParts[1].length : 0, bParts[1] ? bParts[1].length : 0);
-  let intLen = Math.max(aParts[0].length, bParts[0].length);
-  
-  aStr = padLeft(aParts[0], intLen);
-  if (fracLen > 0) aStr += '.' + (aParts[1] || '').padEnd(fracLen, '0');
-  
-  bStr = padLeft(bParts[0], intLen);
-  if (fracLen > 0) bStr += '.' + (bParts[1] || '').padEnd(fracLen, '0');
-
+  const len = Math.max(aStr.length, bStr.length);
+  aStr = padLeft(aStr, len); bStr = padLeft(bStr, len);
   const cols = [];
   let borrow = 0;
-  for (let i = aStr.length - 1; i >= 0; i--) {
-    if (aStr[i] === '.') {
-      cols.unshift({ isPoint: true, char: '.' });
-      continue;
-    }
+  for (let i = len - 1; i >= 0; i--) {
     let a = digitVal(aStr[i]) - borrow;
     const b = digitVal(bStr[i]);
     let borrowOut = 0;
@@ -830,9 +798,7 @@ function subColumns(aStr, bStr, base) {
     cols.unshift({ aOrig: digitVal(aStr[i]), b, borrowIn: borrow, borrowOut, resultDigit });
     borrow = borrowOut;
   }
-  let resultStr = cols.map(c => c.isPoint ? '.' : valDigit(c.resultDigit)).join("");
-  resultStr = resultStr.replace(/^0+(?=[0-9A-F])/, "");
-  if (resultStr.startsWith('.')) resultStr = "0" + resultStr;
+  let resultStr = cols.map(c => valDigit(c.resultDigit)).join("").replace(/^0+(?=[0-9A-F])/, "");
   return { cols, finalBorrow: borrow, resultStr };
 }
 
@@ -905,9 +871,6 @@ function topicPct(key) {
 
 // ---------------- NAV CONFIG ----------------
 const NAV = [
-  { group: "Practice", items: [
-    { id: "trainer", label: "← Back to Trainer", dot: "var(--ink-faint)" }
-  ]},
   { group: "Start", items: [
     { id: "home", label: "Home", dot: "#fff" }
   ]},
@@ -938,10 +901,6 @@ const PAGE_RENDERERS = {}; // id -> { render: ()=>html, init: (root)=>void }
 function registerPage(id, render, init) { PAGE_RENDERERS[id] = { render, init }; }
 
 function navigate(id, opts) {
-  if (id === "trainer") {
-    window.location.href = "index1.html";
-    return;
-  }
   if (!PAGE_RENDERERS[id]) id = "home";
   STATE.page = id;
   STATE.sidebarOpen = false;
@@ -996,43 +955,7 @@ function renderSidebarInner() {
 function renderCurrentPage() {
   const p = PAGE_RENDERERS[STATE.page];
   if (!p) return "<p>Not found.</p>";
-  
-  const orderedPages = [];
-  for (const group of NAV) {
-    if (group.group === "Practice") continue;
-    for (const item of group.items) {
-      orderedPages.push({ id: item.id, label: item.label });
-    }
-  }
-
-  const currentIndex = orderedPages.findIndex(item => item.id === STATE.page);
-  let navHtml = '';
-  
-  if (STATE.page === "detailed-animation") {
-    navHtml += `
-      <div style="margin-top:40px; padding-top:24px; border-top:1px solid var(--border); text-align:center;">
-        <button class="btn btn-primary" onclick="window.history.back()" style="padding:10px 20px;">← Back to Practice</button>
-      </div>
-    `;
-  } else if (currentIndex !== -1 && orderedPages.length > 1) {
-    const prev = currentIndex > 0 ? orderedPages[currentIndex - 1] : null;
-    const next = currentIndex < orderedPages.length - 1 ? orderedPages[currentIndex + 1] : null;
-
-    navHtml += `
-      <div style="display:flex; justify-content:space-between; margin-top:40px; padding-top:24px; border-top:1px solid var(--border); gap:16px;">
-        ${prev ? `<button class="btn btn-ghost" onclick="navigate('${prev.id}')" style="flex:1; justify-content:flex-start; text-align:left; max-width:50%;">
-          <span style="font-size:12px; color:var(--item-subtext); display:block;">← Previous</span>
-          <span style="font-size:14px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${prev.label}</span>
-        </button>` : `<div style="flex:1"></div>`}
-        ${next ? `<button class="btn btn-ghost" onclick="navigate('${next.id}')" style="flex:1; justify-content:flex-end; text-align:right; max-width:50%;">
-          <span style="font-size:12px; color:var(--item-subtext); display:block;">Next →</span>
-          <span style="font-size:14px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${next.label}</span>
-        </button>` : `<div style="flex:1"></div>`}
-      </div>
-    `;
-  }
-  
-  return p.render() + navHtml;
+  return p.render();
 }
 
 function renderApp() {
@@ -2462,21 +2385,13 @@ function additionStepperMarkup(aStr, bStr, base, revealed) {
   const { cols, finalCarry } = addColumns(aStr, bStr, base);
   const len = cols.length;
   const carryRow = `<div class="add-row"><div class="op-sign">&nbsp;</div>${cols.map((c, i) => {
-    if (c.isPoint) return `<div class="col-slot" style="width:16px;">&nbsp;</div>`;
     const posFromRight = len - 1 - i;
     const isRevealed = posFromRight < revealed;
     return `<div class="col-slot">${(isRevealed && c.carryIn) ? `<div class="carry-chip">+1</div>` : "&nbsp;"}</div>`;
   }).join("")}</div>`;
-  const aRow = `<div class="add-row"><div class="op-sign">&nbsp;</div>${cols.map(c => {
-    if (c.isPoint) return `<div class="col-slot" style="width:16px; font-weight:bold; font-size:24px; padding-bottom:4px; color:var(--text);">.</div>`;
-    return `<div class="col-slot">${digitBox(valDigit(c.a), { base })}</div>`;
-  }).join("")}</div>`;
-  const bRow = `<div class="add-row"><div class="op-sign">+</div>${cols.map(c => {
-    if (c.isPoint) return `<div class="col-slot" style="width:16px; font-weight:bold; font-size:24px; padding-bottom:4px; color:var(--text);">.</div>`;
-    return `<div class="col-slot">${digitBox(valDigit(c.b), { base })}</div>`;
-  }).join("")}</div>`;
+  const aRow = `<div class="add-row"><div class="op-sign">&nbsp;</div>${cols.map(c => `<div class="col-slot">${digitBox(valDigit(c.a), { base })}</div>`).join("")}</div>`;
+  const bRow = `<div class="add-row"><div class="op-sign">+</div>${cols.map(c => `<div class="col-slot">${digitBox(valDigit(c.b), { base })}</div>`).join("")}</div>`;
   const resultColsHTML = cols.map((c, i) => {
-    if (c.isPoint) return `<div class="col-slot" style="width:16px; font-weight:bold; font-size:24px; padding-bottom:4px; color:var(--primary);">.</div>`;
     const posFromRight = len - 1 - i;
     const isRevealed = posFromRight < revealed;
     return `<div class="col-slot">${isRevealed ? digitBox(valDigit(c.resultDigit), { base, filled: true, state: "pop" }) : digitBox("?", { extra: "ghost" })}</div>`;
@@ -2487,11 +2402,10 @@ function additionStepperMarkup(aStr, bStr, base, revealed) {
     ${resultColsHTML}</div>`;
   return `<div class="add-table">${carryRow}${aRow}${bRow}<div class="add-rule"></div>${resultRow}</div>`;
 }
+
 function wireAdditionStepper(container, aStr, bStr, base) {
   let revealed = 0;
-  let playing = false;
-  let playInterval = null;
-  let lastExplain = "Click Play to watch, or use Previous/Next to step through manually.";
+  let lastExplain = "Click below to reveal the rightmost column first — addition always starts at the ones position.";
   const { cols, finalCarry } = addColumns(aStr, bStr, base);
   const len = cols.length;
   const totalSteps = len + (finalCarry ? 1 : 0);
@@ -2500,69 +2414,28 @@ function wireAdditionStepper(container, aStr, bStr, base) {
     if (stepIdx < len) {
       const colArrIdx = len - 1 - stepIdx;
       const c = cols[colArrIdx];
-      if (c.isPoint) return "Radix point column. Just bring it straight down.";
       const total = c.a + c.b + c.carryIn;
       let txt = `${valDigit(c.a)} + ${valDigit(c.b)}${c.carryIn ? " + 1 carried in" : ""} = ${total} (decimal). `;
-      if (c.carryOut) txt += `${total} is exactly one full group of ${base} plus ${c.resultDigit} left over. So we write ${valDigit(c.resultDigit)} and carry 1 to the next position.`;
-      else txt += `Since ${total} is less than ${base}, we just write ${valDigit(c.resultDigit)}. No carry needed.`;
+      txt += c.carryOut
+        ? `That's ${base} or more, so write ${valDigit(c.resultDigit)} here and carry 1 into the next column left.`
+        : `That's less than ${base}, so ${valDigit(c.resultDigit)} is written directly — no carry.`;
       return txt;
     }
     return `Every column is done, but there's one carry left over with nowhere left to go — it becomes a brand-new leading digit: ${valDigit(finalCarry)}.`;
   }
-  
-  function pause() {
-    playing = false;
-    clearInterval(playInterval);
-    render();
-  }
-  function play() {
-    if (revealed >= totalSteps) {
-      revealed = 0;
-    }
-    playing = true;
-    render();
-    playInterval = setInterval(() => {
-      if (revealed < totalSteps) {
-        lastExplain = computeExplain(revealed);
-        revealed++;
-        render();
-      } else {
-        pause();
-      }
-    }, 1500);
-  }
+
   function render() {
     container.innerHTML = additionStepperMarkup(aStr, bStr, base, revealed) +
       `<div class="step-controls">
-        <button class="btn btn-ghost btn-sm" id="stepPrevBtn" ${revealed <= 0 ? "disabled" : ""}>← Previous</button>
-        <button class="btn btn-primary btn-sm" id="stepPlayPauseBtn">${playing ? "Pause" : (revealed >= totalSteps ? "Restart" : "Play")}</button>
-        <button class="btn btn-ghost btn-sm" id="stepNextBtn" ${revealed >= totalSteps ? "disabled" : ""}>Next →</button>
+        <button class="btn btn-primary btn-sm" id="stepNextBtn" ${revealed >= totalSteps ? "disabled" : ""}>${revealed >= totalSteps ? "All columns revealed" : (revealed === 0 ? "Reveal rightmost column →" : "Reveal next column →")}</button>
+        <button class="btn btn-ghost btn-sm" id="stepResetBtn">Reset</button>
       </div>
       <div class="step-explain">${callout(lastExplain, revealed > 0 ? "carry-note" : "")}</div>`;
-    
-    const prevBtn = document.getElementById("stepPrevBtn");
-    if (prevBtn) prevBtn.addEventListener("click", () => { 
-      pause(); 
-      if (revealed > 0) { 
-        revealed--; 
-        lastExplain = revealed === 0 ? "Click Play to watch, or use Previous/Next to step through manually." : computeExplain(revealed - 1); 
-        render(); 
-      } 
-    });
-
-    const nextBtn = document.getElementById("stepNextBtn");
-    if (nextBtn) nextBtn.addEventListener("click", () => { 
-      pause(); 
-      if (revealed < totalSteps) { 
-        lastExplain = computeExplain(revealed); 
-        revealed++; 
-        render(); 
-      } 
-    });
-
-    const playPauseBtn = document.getElementById("stepPlayPauseBtn");
-    if (playPauseBtn) playPauseBtn.addEventListener("click", () => {
-      if (playing) pause(); else play();
+    const btn = document.getElementById("stepNextBtn");
+    if (btn) btn.addEventListener("click", () => { lastExplain = computeExplain(revealed); revealed++; render(); });
+    document.getElementById("stepResetBtn").addEventListener("click", () => {
+      revealed = 0; lastExplain = "Click below to reveal the rightmost column first — addition always starts at the ones position.";
+      render();
     });
   }
   render();
@@ -2681,40 +2554,29 @@ function subtractionStepperMarkup(aStr, bStr, base, revealed) {
   const { cols } = subColumns(aStr, bStr, base);
   const len = cols.length;
   const borrowRow = `<div class="add-row"><div class="op-sign">&nbsp;</div>${cols.map((c, i) => {
-    if (c.isPoint) return `<div class="col-slot" style="width:16px;">&nbsp;</div>`;
     const posFromRight = len - 1 - i;
     const isRevealed = posFromRight < revealed;
-    return `<div class="col-slot">${(isRevealed && c.borrowIn) ? `<div class="carry-chip" style="background:var(--borrow-soft);color:var(--borrow);border-color:var(--borrow-soft);">−1</div>` : "&nbsp;"}</div>`;
+    return `<div class="col-slot">${(isRevealed && c.borrowIn) ? `<div class="borrow-chip">−1</div>` : "&nbsp;"}</div>`;
   }).join("")}</div>`;
-  const aRow = `<div class="add-row"><div class="op-sign">&nbsp;</div>${cols.map(c => {
-    if (c.isPoint) return `<div class="col-slot" style="width:16px; font-weight:bold; font-size:24px; padding-bottom:4px; color:var(--text);">.</div>`;
-    return `<div class="col-slot">${digitBox(valDigit(c.aOrig), { base })}</div>`;
-  }).join("")}</div>`;
-  const bRow = `<div class="add-row"><div class="op-sign">−</div>${cols.map(c => {
-    if (c.isPoint) return `<div class="col-slot" style="width:16px; font-weight:bold; font-size:24px; padding-bottom:4px; color:var(--text);">.</div>`;
-    return `<div class="col-slot">${digitBox(valDigit(c.b), { base })}</div>`;
-  }).join("")}</div>`;
-  const resultColsHTML = cols.map((c, i) => {
-    if (c.isPoint) return `<div class="col-slot" style="width:16px; font-weight:bold; font-size:24px; padding-bottom:4px; color:var(--primary);">.</div>`;
+  const aRow = `<div class="add-row"><div class="op-sign">&nbsp;</div>${cols.map(c => `<div class="col-slot">${digitBox(valDigit(c.aOrig), { base })}</div>`).join("")}</div>`;
+  const bRow = `<div class="add-row"><div class="op-sign">−</div>${cols.map(c => `<div class="col-slot">${digitBox(valDigit(c.b), { base })}</div>`).join("")}</div>`;
+  const resultRow = `<div class="add-row"><div class="op-sign">&nbsp;</div>${cols.map((c, i) => {
     const posFromRight = len - 1 - i;
     const isRevealed = posFromRight < revealed;
-    return `<div class="col-slot">${isRevealed ? digitBox(valDigit(c.resultDigit), { base, filled: true, state: "pop", color: "var(--borrow)" }) : digitBox("?", { extra: "ghost" })}</div>`;
-  }).join("");
-  const resultRow = `<div class="add-row"><div class="op-sign">&nbsp;</div>${resultColsHTML}</div>`;
+    return `<div class="col-slot">${isRevealed ? digitBox(valDigit(c.resultDigit), { base, filled: true, state: "pop" }) : digitBox("?", { extra: "ghost" })}</div>`;
+  }).join("")}</div>`;
   return `<div class="add-table">${borrowRow}${aRow}${bRow}<div class="add-rule"></div>${resultRow}</div>`;
 }
+
 function wireSubtractionStepper(container, aStr, bStr, base) {
   let revealed = 0;
-  let playing = false;
-  let playInterval = null;
-  let lastExplain = "Click Play to watch, or use Previous/Next to step through manually.";
+  let lastExplain = "Click below to reveal the rightmost column first — subtraction always starts at the ones position.";
   const { cols } = subColumns(aStr, bStr, base);
   const len = cols.length;
 
   function computeExplain(stepIdx) {
     const colArrIdx = len - 1 - stepIdx;
     const c = cols[colArrIdx];
-    if (c.isPoint) return "Radix point column. Just bring it straight down.";
     if (!c.borrowIn) {
       if (c.borrowOut) return `${valDigit(c.aOrig)} is smaller than ${valDigit(c.b)}, so this column can't subtract directly — it borrows one full group of ${base} from the column to its left, becoming ${c.aOrig + base}. ${c.aOrig + base} − ${valDigit(c.b)} = ${valDigit(c.resultDigit)}.`;
       return `${valDigit(c.aOrig)} − ${valDigit(c.b)} = ${valDigit(c.resultDigit)}. No borrowing needed — the top digit was already big enough.`;
@@ -2730,61 +2592,18 @@ function wireSubtractionStepper(container, aStr, bStr, base) {
     return txt;
   }
 
-  function pause() {
-    playing = false;
-    clearInterval(playInterval);
-    render();
-  }
-
-  function play() {
-    if (revealed >= len) {
-      revealed = 0;
-    }
-    playing = true;
-    render();
-    playInterval = setInterval(() => {
-      if (revealed < len) {
-        lastExplain = computeExplain(revealed);
-        revealed++;
-        render();
-      } else {
-        pause();
-      }
-    }, 1500);
-  }
-
   function render() {
     container.innerHTML = subtractionStepperMarkup(aStr, bStr, base, revealed) +
       `<div class="step-controls">
-        <button class="btn btn-ghost btn-sm" id="subStepPrevBtn" ${revealed <= 0 ? "disabled" : ""}>← Previous</button>
-        <button class="btn btn-primary btn-sm" id="subStepPlayPauseBtn">${playing ? "Pause" : (revealed >= len ? "Restart" : "Play")}</button>
-        <button class="btn btn-ghost btn-sm" id="subStepNextBtn" ${revealed >= len ? "disabled" : ""}>Next →</button>
+        <button class="btn btn-primary btn-sm" id="subStepNextBtn" ${revealed >= len ? "disabled" : ""}>${revealed >= len ? "All columns revealed" : (revealed === 0 ? "Reveal rightmost column →" : "Reveal next column →")}</button>
+        <button class="btn btn-ghost btn-sm" id="subStepResetBtn">Reset</button>
       </div>
       <div class="step-explain">${callout(lastExplain, revealed > 0 ? "borrow-note" : "")}</div>`;
-      
-    const prevBtn = document.getElementById("subStepPrevBtn");
-    if (prevBtn) prevBtn.addEventListener("click", () => { 
-      pause(); 
-      if (revealed > 0) { 
-        revealed--; 
-        lastExplain = revealed === 0 ? "Click Play to watch, or use Previous/Next to step through manually." : computeExplain(revealed - 1); 
-        render(); 
-      } 
-    });
-
-    const nextBtn = document.getElementById("subStepNextBtn");
-    if (nextBtn) nextBtn.addEventListener("click", () => { 
-      pause(); 
-      if (revealed < len) { 
-        lastExplain = computeExplain(revealed); 
-        revealed++; 
-        render(); 
-      } 
-    });
-
-    const playPauseBtn = document.getElementById("subStepPlayPauseBtn");
-    if (playPauseBtn) playPauseBtn.addEventListener("click", () => {
-      if (playing) pause(); else play();
+    const btn = document.getElementById("subStepNextBtn");
+    if (btn) btn.addEventListener("click", () => { lastExplain = computeExplain(revealed); revealed++; render(); });
+    document.getElementById("subStepResetBtn").addEventListener("click", () => {
+      revealed = 0; lastExplain = "Click below to reveal the rightmost column first — subtraction always starts at the ones position.";
+      render();
     });
   }
   render();
@@ -2967,19 +2786,9 @@ registerPage("complement", function () {
 /* ============================================================
    MODULE 11 — Multiplication
    ============================================================ */
-
-
 function multiplyLong(mStr, nStr, base) {
-  const hasPoint = mStr.includes('.') || nStr.includes('.');
-  let mFracLen = mStr.includes('.') ? mStr.length - 1 - mStr.indexOf('.') : 0;
-  let nFracLen = nStr.includes('.') ? nStr.length - 1 - nStr.indexOf('.') : 0;
-  const totalFracLen = mFracLen + nFracLen;
-  
-  const mClean = mStr.replace('.', '');
-  const nClean = nStr.replace('.', '');
-  
-  const mVal = baseToInt(mClean, base);
-  const nDigits = nClean.split("");
+  const mVal = baseToInt(mStr, base);
+  const nDigits = nStr.split("");
   const partials = [];
   for (let i = nDigits.length - 1; i >= 0; i--) {
     const digit = digitVal(nDigits[i]);
@@ -2989,46 +2798,26 @@ function multiplyLong(mStr, nStr, base) {
     partials.push({ digit, shift, productStr });
   }
   const finalSum = partials.reduce((acc, p) => acc + baseToInt(p.productStr, base) * Math.pow(base, p.shift), 0);
-  let resultStr = intToBase(finalSum, base);
-  
-  if (totalFracLen > 0) {
-    resultStr = resultStr.padStart(totalFracLen + 1, '0');
-    const splitIdx = resultStr.length - totalFracLen;
-    resultStr = resultStr.slice(0, splitIdx) + '.' + resultStr.slice(splitIdx);
-  }
-  return { mVal, partials, resultStr, finalSum, totalFracLen };
+  const resultStr = intToBase(finalSum, base);
+  return { mVal, partials, resultStr, finalSum };
 }
-
-function multRowHTML(digitsStr, shift, signChar, base, addPoints) {
+function multRowHTML(digitsStr, shift, signChar, base) {
   let html = `<div class="add-row"><div class="op-sign">${signChar || "&nbsp;"}</div>`;
-  html += digitsStr.split("").map(d => {
-    if (d === '.') return `<div class="col-slot" style="width:16px; font-weight:bold; font-size:24px; padding-bottom:4px; color:var(--text);">.</div>`;
-    return `<div class="col-slot">${digitBox(d, { base, filled: true, extra: "fade-in" })}</div>`;
-  }).join("");
-  for (let i = 0; i < shift; i++) {
-    html += `<div class="col-slot">${digitBox('0', { base, extra: "ghost" })}</div>`;
-  }
+  html += digitsStr.split("").map(d => `<div class="col-slot">${digitBox(d, { base, filled: true, extra: "fade-in" })}</div>`).join("");
+  for (let i = 0; i < shift; i++) html += `<div class="col-slot"></div>`;
   html += `</div>`;
   return html;
 }
-
 function renderMultiplicationLong(mStr, nStr, base) {
-  const { partials, resultStr, totalFracLen } = multiplyLong(mStr, nStr, base);
-  let html = `<div class="add-table" style="display:inline-flex; flex-direction:column; align-items:flex-end;">`;
+  const { partials, resultStr } = multiplyLong(mStr, nStr, base);
+  let html = `<div class="add-table">`;
   html += multRowHTML(mStr, 0, "", base);
   html += multRowHTML(nStr, 0, "×", base);
-  html += `<div class="add-rule" style="width:100%;"></div>`;
-  partials.forEach((p, idx) => {
-    let pStr = p.productStr;
-    html += multRowHTML(pStr, p.shift, idx === 0 ? "" : "+", base);
-  });
+  html += `<div class="add-rule"></div>`;
+  partials.forEach((p, idx) => { html += multRowHTML(p.productStr, p.shift, idx === 0 ? "" : "+", base); });
   if (partials.length > 1) {
-    html += `<div class="add-rule" style="width:100%;"></div>`;
-    html += multRowHTML(resultStr.replace('.', ''), 0, "", base);
-  }
-  if (totalFracLen > 0) {
-    html += `<div class="add-rule" style="width:100%;"></div>`;
-    html += multRowHTML(resultStr, 0, "Final", base);
+    html += `<div class="add-rule"></div>`;
+    html += multRowHTML(resultStr, 0, "", base);
   }
   html += `</div>`;
   return html;
@@ -3093,150 +2882,11 @@ registerPage("multiply", m11Body, function (root) {
 /* ============================================================
    BOOTSTRAP
    ============================================================ */
-
-/* ============================================================
-   DETAILED ANIMATION PAGE (Dynamically generated from practice)
-   ============================================================ */
-function renderDetailedAnimationPage() {
-  const params = new URLSearchParams(window.location.search);
-  const mode = params.get("mode");
-  
-  if (mode === "arithmetic") {
-    const op = params.get("op");
-    const base = parseInt(params.get("base"), 10);
-    const a = params.get("a");
-    const b = params.get("b");
-    const opName = op === "add" ? "Addition" : op === "sub" ? "Subtraction" : "Multiplication";
-    
-    return `
-      ${lessonHeader("Detailed Visual Solution", `Base ${base} ${opName}`, `Step-by-step breakdown of ${a} ${op === "add" ? "+" : op === "sub" ? "−" : "×"} ${b}`)}
-      <div class="rail">
-        ${railBlock("Interactive Stepper", "Watch the columns resolve", "Press play to watch the exact operation column by column, or step through manually to read the detailed explanation for each position.", `
-          <div id="detailed-stepper"></div>
-        `)}
-      </div>
-    `;
-  } else if (mode === "conversion") {
-    const fromBase = parseInt(params.get("from"), 10);
-    const toBase = parseInt(params.get("to"), 10);
-    const qStr = params.get("q");
-    
-    return `
-      ${lessonHeader("Detailed Visual Solution", `Base ${fromBase} to Base ${toBase}`, `Step-by-step conversion of ${qStr}`)}
-      <div class="rail" id="detailed-conv-container">
-      </div>
-    `;
-  }
-  return "<p>Invalid parameters.</p>";
-}
-
-function initDetailedAnimationPage(root) {
-  const params = new URLSearchParams(window.location.search);
-  const mode = params.get("mode");
-  
-  if (mode === "arithmetic") {
-    const op = params.get("op");
-    const base = parseInt(params.get("base"), 10);
-    const a = params.get("a");
-    const b = params.get("b");
-    const container = root.querySelector("#detailed-stepper");
-    if (!container) return;
-    
-    if (op === "add") {
-      wireAdditionStepper(container, a, b, base);
-    } else if (op === "sub") {
-      wireSubtractionStepper(container, a, b, base);
-    } else if (op === "mul") {
-      container.style.textAlign = "center";
-      container.innerHTML = renderMultiplicationLong(a, b, base);
-    }
-  } else if (mode === "conversion") {
-    const fromBase = parseInt(params.get("from"), 10);
-    const toBase = parseInt(params.get("to"), 10);
-    const qStr = params.get("q");
-    const container = root.querySelector("#detailed-conv-container");
-    if (!container) return;
-    
-    
-    // Determine conversion steps
-    let html = "";
-    const parts = qStr.split(".");
-    
-    if (fromBase !== 10 && toBase === 10) {
-      // Base to Decimal
-      html += railBlock("Integer Part Expansion", "Multiply by place values", `Read each digit and multiply it by its positional weight in Base ${fromBase}.`, `
-        <div style="text-align:center;">${sumBreakdownHTML(parts[0], fromBase)}</div>
-      `);
-      if (parts[1]) {
-        html += railBlock("Fractional Part Expansion", "Multiply by negative place values", `Read each fractional digit and multiply it by its negative positional weight.`, `
-          <div style="text-align:center;">${sumBreakdownFracHTML(parts[1], fromBase)}</div>
-        `);
-      }
-    } else if (fromBase === 10 && toBase !== 10) {
-      // Decimal to Base
-      const intPart = parseInt(parts[0], 10) || 0;
-      html += railBlock("Integer Part", "Division Ladder", `Divide by ${toBase} repeatedly. Read the remainders from bottom to top.`, `
-        <div style="text-align:center;">${divisionLadderHTML(intPart, toBase)}</div>
-      `);
-      
-      if (parts[1]) {
-        const fracStr = "0." + parts[1];
-        const fracPart = parseFloat(fracStr);
-        html += railBlock("Fractional Part", "Multiplication Ladder", `Multiply the fraction by ${toBase} repeatedly. Keep the integer digits from top to bottom.`, `
-          <div style="text-align:center;">${fracLadderHTML(fracPart, toBase, 4)}</div>
-        `);
-      }
-    } else {
-      // Base to Base (via Decimal)
-      html += railBlock("Step 1a: Convert Integer to Decimal", `Expand Base ${fromBase} to Decimal`, `First, bring ${qStr} integer part into Base 10.`, `
-        <div style="text-align:center;">${sumBreakdownHTML(parts[0], fromBase)}</div>
-      `);
-      if (parts[1]) {
-        html += railBlock("Step 1b: Convert Fraction to Decimal", `Expand Base ${fromBase} fraction to Decimal`, `Bring ${qStr} fractional part into Base 10.`, `
-          <div style="text-align:center;">${sumBreakdownFracHTML(parts[1], fromBase)}</div>
-        `);
-      }
-      
-      // Calculate decimal value
-      let decInt = 0;
-      let intStr = parts[0];
-      for (let i = 0; i < intStr.length; i++) {
-        const val = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ".indexOf(intStr[i].toUpperCase());
-        decInt += val * Math.pow(fromBase, intStr.length - 1 - i);
-      }
-      
-      let decFrac = 0;
-      if (parts[1]) {
-        let fracStr = parts[1];
-        for (let i = 0; i < fracStr.length; i++) {
-          const val = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ".indexOf(fracStr[i].toUpperCase());
-          decFrac += val * Math.pow(fromBase, -(i + 1));
-        }
-      }
-      
-      html += railBlock("Step 2: Decimal to Target Base", `Convert ${decInt + decFrac} to Base ${toBase}`, `Now, use the ladder methods to reach the final base.`, `
-        <div style="text-align:center; margin-bottom: 24px;">${divisionLadderHTML(decInt, toBase)}</div>
-        ${parts[1] ? `<div style="text-align:center;">${fracLadderHTML(decFrac, toBase, 4)}</div>` : ''}
-      `);
-    }
-
-    container.innerHTML = html;
-  }
-}
-
-
 function boot() {
   initGlobalDelegation();
-  const params = new URLSearchParams(window.location.search);
-  if (params.get("detailed") === "true") {
-    registerPage("detailed-animation", renderDetailedAnimationPage, initDetailedAnimationPage);
-    navigate("detailed-animation", { noScroll: true });
-    return;
-  }
-  const mod = params.get("module") || window.location.hash.replace("#", "");
-  navigate(PAGE_RENDERERS[mod] ? mod : "home", { noScroll: true });
+  const hash = window.location.hash.replace("#", "");
+  navigate(PAGE_RENDERERS[hash] ? hash : "home", { noScroll: true });
 }
-
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", boot);
 } else {

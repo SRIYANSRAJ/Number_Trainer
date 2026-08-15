@@ -1353,17 +1353,6 @@
       </div>
     </div>
 
-    <!-- NUDGE CONTAINER -->
-    <div id="practiceLearnNudge" style="display:none; width:100%; max-width:980px; margin:0 auto 16px; background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.3); border-radius:12px; padding:12px 18px; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; animation: slideUp 0.3s ease;">
-      <div style="font-size:13.5px; color:var(--text);">
-        <b style="color:var(--primary);">Need a refresher?</b> The visual classroom explains <span id="nudgeTopicText" style="font-weight:700;">this concept</span> step-by-step.
-      </div>
-      <div style="display:flex; gap:10px; align-items:center;">
-        <a id="nudgeLinkBtn" href="learning.html" class="btn primary" style="padding:6px 14px; font-size:12.5px; text-decoration:none;">Go to Classroom</a>
-        <button id="nudgeDismissBtn" style="background:none; border:none; cursor:pointer; font-size:22px; color:var(--muted); padding:0; display:flex; align-items:center;" title="Dismiss">&times;</button>
-      </div>
-    </div>
-
     <div class="problem-card">
       <div class="problem-scroll">
         <div id="carryRowWrap" class="indicator-row" style="display:none;"></div>
@@ -1384,7 +1373,7 @@
       <button class="btn ghost" id="prevBtn">⟵ Previous</button>
       <button class="btn ghost" id="nextBtn">Next ⟶</button>
       <button class="btn success" id="randomBtn">🎲 Random Question</button>
-      <button class="btn ghost ai-sol-btn" id="aiSolBtn" style="display:none; background: linear-gradient(135deg, rgba(99,102,241,0.18), rgba(168,85,247,0.18)); border:1px solid rgba(99,102,241,0.4); color:var(--primary); font-weight:700;">🎬 Detailed Animation</button>
+      <button class="btn ghost ai-sol-btn" id="aiSolBtn" style="display:none; background: linear-gradient(135deg, rgba(99,102,241,0.18), rgba(168,85,247,0.18)); border:1px solid rgba(99,102,241,0.4); color:var(--primary); font-weight:700;">✨ AI Solution</button>
     </div>
 
     <div class="stats-panel">
@@ -2224,7 +2213,7 @@ function renderQuestion(question) {
   }
 
   // Prefetch Gemini AI solution in background immediately upon question generation
-  
+  prefetchArithmeticAiSolution(question);
 
   // Before submitting, NO AI solution button scope should be present
   const aiSolBtn = $('#aiSolBtn');
@@ -2585,30 +2574,12 @@ function renderStats() {
 /* ---------------------------------------------------------------------
    11. SCREEN / SETTINGS CONTROL
    --------------------------------------------------------------------- */
-const NUDGE_MAPPING = {
-  add: { module: 'm8', name: 'Addition' },
-  sub: { module: 'm9', name: 'Subtraction' },
-  mul: { module: 'multiply', name: 'Multiplication' }
-};
-
 function startPractice(base, op) {
   state.base = base;
   state.op = op;
   $('#modeLabel').textContent = `${BASE_NAMES[base]} ${OP_NAMES[op]}`;
   $('#home-screen').classList.remove('active');
   $('#practice-screen').classList.add('active');
-
-  const nudge = $('#practiceLearnNudge');
-  if (nudge && !localStorage.getItem('numSysHideNudge')) {
-    const target = NUDGE_MAPPING[op];
-    if (target) {
-      $('#nudgeTopicText').textContent = `${BASE_NAMES[base]} ${target.name}`;
-      $('#nudgeLinkBtn').href = `learning.html?module=${target.module}&return=trainer`;
-      nudge.style.display = 'flex';
-    } else {
-      nudge.style.display = 'none';
-    }
-  }
 
   state.history = [createQuestion()];
   state.historyIndex = 0;
@@ -2646,14 +2617,6 @@ function init() {
     card.addEventListener('click', go);
     card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
   });
-
-  const nudgeDismissBtn = $('#nudgeDismissBtn');
-  if (nudgeDismissBtn) {
-    nudgeDismissBtn.addEventListener('click', () => {
-      localStorage.setItem('numSysHideNudge', 'true');
-      $('#practiceLearnNudge').style.display = 'none';
-    });
-  }
 
   $$('#difficultyGroup .pill').forEach(p => {
     p.addEventListener('click', () => setDifficulty(p.dataset.level));
@@ -2938,15 +2901,31 @@ function formatMarkdownToHTML(md) {
 }
 
 function openAiModal() {
+  const overlay = $('#aiModalOverlay');
+  if (!overlay) return;
+  overlay.classList.add('show');
+
   const q = currentQuestion();
-  if (!q) return;
-  const lenA = q.a.replace('.', '').length;
-  const lenB = q.b.replace('.', '').length;
-  if (lenA > 8 || lenB > 8) {
-    alert("Detailed visual animation is only available for questions up to 8 digits.");
+  const body = $('#aiModalBody');
+  if (!q) {
+    body.innerHTML = '<p>No active question found.</p>';
     return;
   }
-  window.location.href = `learning.html?detailed=true&mode=arithmetic&op=${q.op}&base=${q.base}&a=${encodeURIComponent(q.a)}&b=${encodeURIComponent(q.b)}`;
+
+  body.innerHTML = `
+    <div style="text-align:center; padding:30px;">
+      <div style="font-size:16px; font-weight:700; color:var(--primary);">✨ Gemini AI is generating step-by-step solution...</div>
+      <div style="font-size:13px; color:var(--item-subtext, #64748b); margin-top:8px;">Analyzing column operations & carry/borrow steps</div>
+    </div>
+  `;
+
+  if (!q.aiSolutionPromise) prefetchArithmeticAiSolution(q);
+
+  q.aiSolutionPromise.then(solutionMd => {
+    body.innerHTML = formatMarkdownToHTML(solutionMd || generateFallbackArithmeticExplanation(q));
+  }).catch(() => {
+    body.innerHTML = formatMarkdownToHTML(generateFallbackArithmeticExplanation(q));
+  });
 }
 
 function closeAiModal() {
