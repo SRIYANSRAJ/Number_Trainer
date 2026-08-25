@@ -1538,6 +1538,7 @@ async function selectStudent(uid, name){
     const url = new URL(window.location.href);
     if(state.isAdmin && !state.viewedIsSelf) url.searchParams.set('student', uid); else url.searchParams.delete('student');
     window.history.replaceState({}, '', url);
+    renderTabNav();
     switchTab('overview');
   }catch(err){
     showErrorGate('Could not load that student', err.message||String(err));
@@ -1829,7 +1830,22 @@ function renderOverview(){
   `;
 
   if(state.isAdmin && !state.viewedIsSelf){
-    $('#backToSelfBtn').addEventListener('click', ()=> selectStudent(state.user.uid, state.user.displayName));
+    $('#backToSelfBtn')?.addEventListener('click', ()=>{
+      if(state.unsubViewed){
+        state.unsubViewed();
+        state.unsubViewed = null;
+      }
+      state.viewedIsSelf = true;
+      state.viewedUid = state.user.uid;
+      state.viewedDoc = state.selfDoc;
+      setLive(true);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('student');
+      window.history.replaceState({}, '', url);
+      onViewedDocChanged();
+      renderTabNav();
+      switchTab('cohortAi');
+    });
   }
 
   if(trend.status!=='insufficient'){
@@ -2475,9 +2491,9 @@ async function renderLeaderboard(){
           <thead><tr><th>Rank</th><th>Student</th><th>Points</th><th>Solved</th><th>Accuracy</th><th>Best Streak</th></tr></thead>
           <tbody>${rows.map((r,i)=>{
             const isMe = state.user && (r.uid === state.user.uid || (state.user.email && r.email === state.user.email));
-            return `<tr${isMe?' style="background:rgba(99,102,241,0.18); font-weight:bold;"':''}>
+            return `<tr${isMe?' style="background:rgba(99,102,241,0.18); font-weight:bold;"':''}${state.isAdmin?' class="clickable" data-uid="'+esc(r.uid)+'" data-name="'+esc(r.name)+'"':''}>
             <td><span class="mono" style="font-weight:800; ${i<3?`color:${i===0?'#fbbf24':i===1?'#94a3b8':'#d97706'};`:''}">#${i+1}</span></td>
-            <td>${esc(r.name)}${isMe ? ' <em style="color:#a5b4fc; font-size:12px;">(You)</em>' : ''}</td>
+            <td>${esc(r.name)}${isMe ? ' <em style="color:#a5b4fc; font-size:12px;">(You)</em>' : ''}${state.isAdmin ? ' <span style="font-size:11px; color:var(--primary); font-weight:600;">(View →)</span>' : ''}</td>
             <td class="mono">${fmtNum(r.points)}</td><td class="mono">${fmtNum(r.totalSolved)}</td>
             <td>${r.accuracy==null?'N/A':fmtPct(r.accuracy)}</td><td class="mono">${fmtNum(r.maxStreak)}</td>
           </tr>`;
@@ -2485,6 +2501,12 @@ async function renderLeaderboard(){
         </table></div>
       </div>
     `;
+
+    if(state.isAdmin){
+      $all('tr[data-uid]', panel).forEach(tr=>{
+        tr.addEventListener('click', ()=> selectStudent(tr.dataset.uid, tr.dataset.name));
+      });
+    }
   }catch(err){
     panel.innerHTML = `<div class="empty-state"><div class="emoji">⚠️</div><h3>Couldn't load the leaderboard</h3><p>${esc(err.message||String(err))}</p></div>`;
   }
