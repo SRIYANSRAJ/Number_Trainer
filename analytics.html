@@ -13,6 +13,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="script.js"></script>
 
 <!-- Chart.js — lightweight, CDN-hosted, used only where a chart genuinely
      helps (trend lines, topic bars, mistake breakdowns). Falls back to
@@ -310,7 +311,7 @@ tbody tr.clickable:hover{ background:rgba(99,102,241,.1); }
   .card{ box-shadow:none !important; border-color:#ccc !important; background:#fff !important; color:#111 !important; }
 }
 
-/* ---------- Responsive & AI Report Hero Enhancements ---------- */
+/* ---------- Responsive & Touch Screen Tablet Enhancements ---------- */
 .ai-report-hero {
   position: relative;
   overflow: hidden;
@@ -341,6 +342,44 @@ tbody tr.clickable:hover{ background:rgba(99,102,241,.1); }
   flex-shrink: 0;
 }
 
+/* Touch screen target accessibility */
+.btn, .tab-btn, .icon-btn, .chip, .filter-bar input, .filter-bar select {
+  min-height: 42px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:active, .tab-btn:active, .icon-btn:active, .chip:active {
+  transform: scale(0.98);
+}
+
+/* Tablet Optimizations (iPad / Android Tablet / 768px - 1024px) */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .topbar {
+    padding: 14px 20px;
+  }
+  .tab-nav {
+    padding: 10px 18px;
+    gap: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tab-btn {
+    padding: 10px 16px;
+    font-size: 13.5px;
+  }
+  main {
+    padding: 20px 18px 70px;
+  }
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+  .grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .kpi-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+}
+
 @media (max-width: 768px) {
   .topbar {
     padding: 12px 16px;
@@ -360,6 +399,7 @@ tbody tr.clickable:hover{ background:rgba(99,102,241,.1); }
     position: relative;
     padding: 8px 14px;
     gap: 6px;
+    -webkit-overflow-scrolling: touch;
   }
   .tab-btn {
     padding: 8px 14px;
@@ -594,6 +634,7 @@ const state = {
   sort:{ table:null, key:null, dir:'desc' },
   charts:{},
   unsubSelf:null,
+  unsubViewed:null,
   searchDebounce:null
 };
 
@@ -832,6 +873,7 @@ async function checkAdminAuthorization(user){
 
 function signOut(){
   if(state.unsubSelf){ state.unsubSelf(); state.unsubSelf = null; }
+  if(state.unsubViewed){ state.unsubViewed(); state.unsubViewed = null; }
   state.auth.signOut().then(()=>{ window.location.replace('index.html'); }).catch(()=>{ window.location.replace('index.html'); });
 }
 
@@ -844,7 +886,7 @@ function watchOwnDoc(uid){
   state.unsubSelf = state.db.collection(CFG.collection).doc(uid).onSnapshot(
     (snap)=>{
       setConnection('connected');
-      setLive(state.viewedIsSelf); // the LIVE dot reflects the currently VIEWED student, not just background sync
+      setLive(state.viewedIsSelf || !!state.unsubViewed); // the LIVE dot reflects the currently VIEWED student
       state.selfDoc = snap.exists ? snap.data() : null;
       if(state.viewedIsSelf){
         state.viewedDoc = state.selfDoc;
@@ -855,6 +897,27 @@ function watchOwnDoc(uid){
       setLive(false);
       setConnection(navigator.onLine ? 'reconnecting' : 'offline');
       console.warn('Realtime listener error:', err.message);
+    }
+  );
+}
+
+function watchViewedDoc(uid){
+  if(state.unsubViewed){
+    state.unsubViewed();
+    state.unsubViewed = null;
+  }
+  setConnection('connecting');
+  state.unsubViewed = state.db.collection(CFG.collection).doc(uid).onSnapshot(
+    (snap)=>{
+      setConnection('connected');
+      setLive(true);
+      state.viewedDoc = snap.exists ? snap.data() : null;
+      onViewedDocChanged();
+    },
+    (err)=>{
+      setLive(false);
+      setConnection(navigator.onLine ? 'reconnecting' : 'offline');
+      console.warn('Realtime student listener error:', err.message);
     }
   );
 }
@@ -913,7 +976,7 @@ function normalizeStudentSummary(raw, uid){
   let convs = Number(raw.conversions || 0);
   let arith = Number(raw.arithmetic || 0);
 
-  if ((typeof state !== 'undefined' && state.user && uid === state.user.uid) || (typeof state !== 'undefined' && state.viewedIsSelf)) {
+  if (typeof state !== 'undefined' && state.user && uid === state.user.uid) {
     const localMax = parseInt(localStorage.getItem('numSysMaxStreak') || '0', 10);
     const localCur = parseInt(localStorage.getItem('numSysCurrentStreak') || '0', 10);
     const localPts = parseInt(localStorage.getItem('numSysPoints') || '0', 10);
@@ -1415,7 +1478,7 @@ async function loadInitialData(){
     watchOwnDoc(state.user.uid);
 
     if(!state.viewedIsSelf){
-      state.viewedDoc = await fetchStudentDoc(state.viewedUid);
+      watchViewedDoc(state.viewedUid);
     } else {
       // wait briefly for the first snapshot if it hasn't arrived yet
       let tries = 0;
@@ -1456,12 +1519,19 @@ async function selectStudent(uid, name){
   showLoadingGate(`Loading ${name||uid}…`);
   state.viewedUid = uid;
   state.viewedIsSelf = uid === state.user.uid;
-  setLive(state.viewedIsSelf);
   try{
-    state.viewedDoc = state.viewedIsSelf ? state.selfDoc : await fetchStudentDoc(uid);
-    if(!state.viewedDoc){
-      toast('No analytics data found for that student yet.', 'error');
+    if(state.unsubViewed){
+      state.unsubViewed();
+      state.unsubViewed = null;
     }
+
+    if(state.viewedIsSelf){
+      state.viewedDoc = state.selfDoc;
+      setLive(true);
+    } else {
+      watchViewedDoc(uid);
+    }
+
     onViewedDocChanged();
     hideAllGates();
     $('#tabPanels').classList.remove('hidden');
@@ -1532,11 +1602,18 @@ function renderAdminStudentInspectionHeader() {
     `;
     header.classList.remove('hidden');
     $('#backToCohortBtn')?.addEventListener('click', () => {
+      if(state.unsubViewed){
+        state.unsubViewed();
+        state.unsubViewed = null;
+      }
       state.viewedIsSelf = true;
       state.viewedUid = state.user.uid;
+      state.viewedDoc = state.selfDoc;
+      setLive(true);
       const url = new URL(window.location.href);
       url.searchParams.delete('student');
       window.history.replaceState({}, '', url);
+      onViewedDocChanged();
       renderTabNav();
       switchTab('cohortAi');
     });
