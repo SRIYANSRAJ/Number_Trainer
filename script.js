@@ -298,69 +298,6 @@ function protectRoute() {
   return true;
 }
 
-async function checkAdminAuthorization(user) {
-  if (!user) return false;
-  try {
-    const tokenResult = await user.getIdTokenResult();
-    if (tokenResult && tokenResult.claims && tokenResult.claims.admin === true) {
-      return true;
-    }
-  } catch (e) {
-    console.debug('Custom claim check notice:', e.message);
-  }
-
-  if (isFirestoreReady && typeof firebase !== 'undefined' && firebase.firestore) {
-    try {
-      const snap = await firebase.firestore().collection('admins').doc(user.uid).get();
-      if (snap.exists) {
-        const data = snap.data() || {};
-        if (data.isAdmin !== false) {
-          return true;
-        }
-      }
-    } catch (e) {
-      console.debug('admins/' + user.uid + ' doc check notice:', e.message);
-    }
-  }
-
-  return false;
-}
-
-function applyAdminUIState(isAdmin) {
-  const isCurrentlyAdmin = isAdmin || window.IS_ADMIN || sessionStorage.getItem('numSysIsAdmin') === 'true';
-  
-  if (isCurrentlyAdmin) {
-    document.body.classList.add('admin-mode');
-    
-    // Hide personal score/points/stats/mistakes UI elements for admin
-    const selectorsToHide = [
-      '#pointsBadge', '#statPoints', '#dashPoints', '#streakDisplay', '#statStreak',
-      '#statBestStreak', '#pointsToggle', '#leaderboardModal', '#mistakesNavBtn'
-    ];
-    selectorsToHide.forEach(selector => {
-      const el = document.querySelector(selector);
-      if (el) el.style.display = 'none';
-    });
-
-    // Inject or update Admin Mode badge in topbar / header
-    let badge = document.getElementById('adminModeHeaderBadge');
-    if (!badge) {
-      badge = document.createElement('div');
-      badge.id = 'adminModeHeaderBadge';
-      badge.className = 'mode-badge admin';
-      badge.innerHTML = '👑 Admin Mode';
-      badge.style.cssText = 'background:rgba(245,158,11,0.2); color:#fcd34d; border:1px solid rgba(245,158,11,0.4); padding:4px 12px; border-radius:12px; font-weight:700; font-size:12px; display:inline-flex; align-items:center; gap:4px; margin-right:8px;';
-      
-      const container = document.querySelector('.top-right-controls') || document.querySelector('.topbar-right') || document.body;
-      if (container) container.insertBefore(badge, container.firstChild);
-    }
-  } else {
-    document.body.classList.remove('admin-mode');
-    const badge = document.getElementById('adminModeHeaderBadge');
-    if (badge) badge.remove();
-  }
-}
-
 // Firebase Auth state listener
 function setupFirebaseAuthListener() {
   if (typeof firebase !== 'undefined' && firebase.auth) {
@@ -369,18 +306,7 @@ function setupFirebaseAuthListener() {
         const onLoginPage = checkIsLoginPage();
         if (user) {
           setAuthSession(user.email, user.displayName || '');
-          const isAdmin = await checkAdminAuthorization(user);
-          window.IS_ADMIN = isAdmin;
-          sessionStorage.setItem('numSysIsAdmin', isAdmin ? 'true' : 'false');
-
-          if (isAdmin) {
-            clearLocalStats();
-          } else {
-            await loadUserStatsFromFirestore(user);
-          }
-
-          applyAdminUIState(isAdmin);
-
+          await loadUserStatsFromFirestore(user);
           if (onLoginPage) window.location.replace('index1.html');
         } else if (isFirebaseReady && !onLoginPage) {
           clearAuthSession();
@@ -589,19 +515,6 @@ function recordQuestionResult({
   timeSeconds = 0,
   extraData = {} // { sB, tB, qStr, aStr } for conversion
 }) {
-  if (window.IS_ADMIN || sessionStorage.getItem('numSysIsAdmin') === 'true') {
-    // Admins do not record points, accuracy, history, or mistakes in the database
-    return {
-      pointsDelta: 0,
-      totalPoints: 0,
-      currentStreak: 0,
-      maxStreak: 0,
-      masteredFromNotebook: false,
-      tier: { name: 'Admin', multiplier: 1, wrongPenalty: 0 },
-      stats: { points: 0, totalSolved: 0, errors: 0, conversions: 0, arithmetic: 0 }
-    };
-  }
-
   const stats = getStats();
   stats.totalSolved++;
   if (type === 'conversion') stats.conversions++;
@@ -710,10 +623,6 @@ function awardConversionPoints(level = '8', isCorrect = true, timeSeconds = 0) {
  * Sync stats to Firestore under userStats/{uid}
  */
 function syncStatsToFirestore(stats) {
-  if (window.IS_ADMIN || sessionStorage.getItem('numSysIsAdmin') === 'true') {
-    // Admins store nothing in database!
-    return;
-  }
   const name = getDisplayName();
   const summaryObj = {
     uid: (isFirebaseReady && typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser)
@@ -1075,30 +984,16 @@ window.callGeminiAPI = async function(prompt) {
       return null;
     }
 
-    let resText = null;
-    if (data.solution) resText = data.solution;
-    else if (data.text) resText = data.text;
-    else if (data.result) resText = data.result;
-    else if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
-      resText = data.candidates[0].content.parts[0].text;
-    } else if (data.response?.candidates?.[0]?.content?.parts?.[0]?.text) {
-      resText = data.response.candidates[0].content.parts[0].text;
-    } else if (typeof data === 'string') {
-      resText = data;
+    if (data.solution) return data.solution;
+    if (data.text) return data.text;
+    if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+      return data.candidates[0].content.parts[0].text;
     }
-
-    if (resText) {
-      const trimmed = String(resText).trim();
-      if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
-        try {
-          const parsed = JSON.parse(trimmed);
-          if (parsed.solution) return parsed.solution;
-          if (parsed.text) return parsed.text;
-        } catch (_) {}
-      }
-      return resText;
+    if (data.response?.candidates?.[0]?.content?.parts?.[0]?.text) {
+      return data.response.candidates[0].content.parts[0].text;
     }
-    return null;
+    if (typeof data === 'string') return data;
+    return typeof data === 'object' ? JSON.stringify(data) : String(data);
   } catch (err) {
     console.warn("Gemini API request failed, switching to offline step generator:", err.message);
     return null;

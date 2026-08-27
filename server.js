@@ -220,7 +220,7 @@ Generate a comprehensive Admin Executive Cohort Report in JSON format with the e
 }
 `;
 
-    const modelsToTry = ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-3.1-pro-preview'];
+    const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-3.6-flash'];
     let lastError = null;
     let response = null;
 
@@ -288,7 +288,7 @@ app.post('/api/solve', async (req, res) => {
     }
 
     const ai = getGeminiClient();
-    const modelsToTry = ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-3.1-pro-preview'];
+    const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-3.6-flash'];
     let lastError = null;
     let response = null;
 

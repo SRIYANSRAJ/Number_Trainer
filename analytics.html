@@ -13,7 +13,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="script.js"></script>
 
 <!-- Chart.js — lightweight, CDN-hosted, used only where a chart genuinely
      helps (trend lines, topic bars, mistake breakdowns). Falls back to
@@ -311,7 +310,7 @@ tbody tr.clickable:hover{ background:rgba(99,102,241,.1); }
   .card{ box-shadow:none !important; border-color:#ccc !important; background:#fff !important; color:#111 !important; }
 }
 
-/* ---------- Responsive & Touch Screen Tablet Enhancements ---------- */
+/* ---------- Responsive & AI Report Hero Enhancements ---------- */
 .ai-report-hero {
   position: relative;
   overflow: hidden;
@@ -342,44 +341,6 @@ tbody tr.clickable:hover{ background:rgba(99,102,241,.1); }
   flex-shrink: 0;
 }
 
-/* Touch screen target accessibility */
-.btn, .tab-btn, .icon-btn, .chip, .filter-bar input, .filter-bar select {
-  min-height: 42px;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-}
-.btn:active, .tab-btn:active, .icon-btn:active, .chip:active {
-  transform: scale(0.98);
-}
-
-/* Tablet Optimizations (iPad / Android Tablet / 768px - 1024px) */
-@media (min-width: 641px) and (max-width: 1024px) {
-  .topbar {
-    padding: 14px 20px;
-  }
-  .tab-nav {
-    padding: 10px 18px;
-    gap: 8px;
-    -webkit-overflow-scrolling: touch;
-  }
-  .tab-btn {
-    padding: 10px 16px;
-    font-size: 13.5px;
-  }
-  main {
-    padding: 20px 18px 70px;
-  }
-  .grid-2 {
-    grid-template-columns: 1fr;
-  }
-  .grid-3 {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .kpi-grid {
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  }
-}
-
 @media (max-width: 768px) {
   .topbar {
     padding: 12px 16px;
@@ -399,7 +360,6 @@ tbody tr.clickable:hover{ background:rgba(99,102,241,.1); }
     position: relative;
     padding: 8px 14px;
     gap: 6px;
-    -webkit-overflow-scrolling: touch;
   }
   .tab-btn {
     padding: 8px 14px;
@@ -634,7 +594,6 @@ const state = {
   sort:{ table:null, key:null, dir:'desc' },
   charts:{},
   unsubSelf:null,
-  unsubViewed:null,
   searchDebounce:null
 };
 
@@ -873,7 +832,6 @@ async function checkAdminAuthorization(user){
 
 function signOut(){
   if(state.unsubSelf){ state.unsubSelf(); state.unsubSelf = null; }
-  if(state.unsubViewed){ state.unsubViewed(); state.unsubViewed = null; }
   state.auth.signOut().then(()=>{ window.location.replace('index.html'); }).catch(()=>{ window.location.replace('index.html'); });
 }
 
@@ -886,7 +844,7 @@ function watchOwnDoc(uid){
   state.unsubSelf = state.db.collection(CFG.collection).doc(uid).onSnapshot(
     (snap)=>{
       setConnection('connected');
-      setLive(state.viewedIsSelf || !!state.unsubViewed); // the LIVE dot reflects the currently VIEWED student
+      setLive(state.viewedIsSelf); // the LIVE dot reflects the currently VIEWED student, not just background sync
       state.selfDoc = snap.exists ? snap.data() : null;
       if(state.viewedIsSelf){
         state.viewedDoc = state.selfDoc;
@@ -897,27 +855,6 @@ function watchOwnDoc(uid){
       setLive(false);
       setConnection(navigator.onLine ? 'reconnecting' : 'offline');
       console.warn('Realtime listener error:', err.message);
-    }
-  );
-}
-
-function watchViewedDoc(uid){
-  if(state.unsubViewed){
-    state.unsubViewed();
-    state.unsubViewed = null;
-  }
-  setConnection('connecting');
-  state.unsubViewed = state.db.collection(CFG.collection).doc(uid).onSnapshot(
-    (snap)=>{
-      setConnection('connected');
-      setLive(true);
-      state.viewedDoc = snap.exists ? snap.data() : null;
-      onViewedDocChanged();
-    },
-    (err)=>{
-      setLive(false);
-      setConnection(navigator.onLine ? 'reconnecting' : 'offline');
-      console.warn('Realtime student listener error:', err.message);
     }
   );
 }
@@ -976,7 +913,7 @@ function normalizeStudentSummary(raw, uid){
   let convs = Number(raw.conversions || 0);
   let arith = Number(raw.arithmetic || 0);
 
-  if (typeof state !== 'undefined' && state.user && uid === state.user.uid) {
+  if ((typeof state !== 'undefined' && state.user && uid === state.user.uid) || (typeof state !== 'undefined' && state.viewedIsSelf)) {
     const localMax = parseInt(localStorage.getItem('numSysMaxStreak') || '0', 10);
     const localCur = parseInt(localStorage.getItem('numSysCurrentStreak') || '0', 10);
     const localPts = parseInt(localStorage.getItem('numSysPoints') || '0', 10);
@@ -1478,7 +1415,7 @@ async function loadInitialData(){
     watchOwnDoc(state.user.uid);
 
     if(!state.viewedIsSelf){
-      watchViewedDoc(state.viewedUid);
+      state.viewedDoc = await fetchStudentDoc(state.viewedUid);
     } else {
       // wait briefly for the first snapshot if it hasn't arrived yet
       let tries = 0;
@@ -1488,14 +1425,10 @@ async function loadInitialData(){
 
     onViewedDocChanged();
 
-    if(state.isAdmin) {
-      await fetchStudentsPage(true);
-      if (state.viewedIsSelf) state.activeTab = 'cohortAi';
-    }
+    if(state.isAdmin) await fetchStudentsPage(true);
 
     hideAllGates();
     $('#tabPanels').classList.remove('hidden');
-    renderTabNav();
     switchTab(state.activeTab);
   }catch(err){
     console.error(err);
@@ -1519,26 +1452,18 @@ async function selectStudent(uid, name){
   showLoadingGate(`Loading ${name||uid}…`);
   state.viewedUid = uid;
   state.viewedIsSelf = uid === state.user.uid;
+  setLive(state.viewedIsSelf);
   try{
-    if(state.unsubViewed){
-      state.unsubViewed();
-      state.unsubViewed = null;
+    state.viewedDoc = state.viewedIsSelf ? state.selfDoc : await fetchStudentDoc(uid);
+    if(!state.viewedDoc){
+      toast('No analytics data found for that student yet.', 'error');
     }
-
-    if(state.viewedIsSelf){
-      state.viewedDoc = state.selfDoc;
-      setLive(true);
-    } else {
-      watchViewedDoc(uid);
-    }
-
     onViewedDocChanged();
     hideAllGates();
     $('#tabPanels').classList.remove('hidden');
     const url = new URL(window.location.href);
     if(state.isAdmin && !state.viewedIsSelf) url.searchParams.set('student', uid); else url.searchParams.delete('student');
     window.history.replaceState({}, '', url);
-    renderTabNav();
     switchTab('overview');
   }catch(err){
     showErrorGate('Could not load that student', err.message||String(err));
@@ -1551,76 +1476,12 @@ async function selectStudent(uid, name){
 function renderTabNav(){
   const nav = $('#tabNav');
   nav.classList.remove('hidden');
-
-  let visibleTabs = [];
-  if (state.isAdmin && state.viewedIsSelf) {
-    // Admin Mode (self view): only cohort AI, student roster, and topics
-    visibleTabs = TABS.filter(t => t.id === 'cohortAi' || t.id === 'students' || t.id === 'topics' || t.id === 'leaderboard');
-    if (!visibleTabs.some(t => t.id === state.activeTab)) {
-      state.activeTab = 'cohortAi';
-    }
-  } else if (state.isAdmin && !state.viewedIsSelf) {
-    // Admin inspecting a specific student
-    visibleTabs = TABS.filter(t => t.id !== 'cohortAi' && t.id !== 'students');
-  } else {
-    // Normal student mode
-    visibleTabs = TABS.filter(t => !t.adminOnly);
-  }
-
-  nav.innerHTML = visibleTabs.map(t=>`
+  nav.innerHTML = TABS.filter(t=>!t.adminOnly || state.isAdmin).map(t=>`
     <button class="tab-btn" role="tab" id="tabbtn-${t.id}" aria-selected="${state.activeTab===t.id}" data-tab="${t.id}">${esc(t.label)}</button>
   `).join('');
   $all('.tab-btn', nav).forEach(btn=>{
     btn.addEventListener('click', ()=> switchTab(btn.dataset.tab));
   });
-
-  renderAdminStudentInspectionHeader();
-}
-
-function renderAdminStudentInspectionHeader() {
-  let header = $('#adminInspectionHeader');
-  if (state.isAdmin && !state.viewedIsSelf) {
-    if (!header) {
-      header = document.createElement('div');
-      header.id = 'adminInspectionHeader';
-      header.style.cssText = 'background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.3); border-radius:12px; padding:12px 20px; margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;';
-      const container = $('#tabPanels')?.parentNode || document.body;
-      const tabNav = $('#tabNav');
-      if (tabNav && tabNav.parentNode) tabNav.parentNode.insertBefore(header, tabNav);
-    }
-    const studentName = state.viewedDoc ? (state.viewedDoc.name || state.viewedDoc.email || 'Student') : 'Student';
-    header.innerHTML = `
-      <div style="display:flex; align-items:center; gap:10px;">
-        <span style="font-size:18px;">🔍</span>
-        <div>
-          <div style="font-weight:700; font-size:14px; color:var(--text);">Inspecting Student Record: <span style="color:var(--primary);">${esc(studentName)}</span></div>
-          <div style="font-size:12px; color:var(--item-subtext, #64748b);">You are reviewing this student's individual analytics. No data is stored for your admin account.</div>
-        </div>
-      </div>
-      <button id="backToCohortBtn" class="btn btn-secondary" style="background:var(--primary); color:#fff; border:none; padding:8px 16px; border-radius:8px; font-weight:700; cursor:pointer; font-size:13px; display:inline-flex; align-items:center; gap:6px;">
-        ← Back to Cohort AI
-      </button>
-    `;
-    header.classList.remove('hidden');
-    $('#backToCohortBtn')?.addEventListener('click', () => {
-      if(state.unsubViewed){
-        state.unsubViewed();
-        state.unsubViewed = null;
-      }
-      state.viewedIsSelf = true;
-      state.viewedUid = state.user.uid;
-      state.viewedDoc = state.selfDoc;
-      setLive(true);
-      const url = new URL(window.location.href);
-      url.searchParams.delete('student');
-      window.history.replaceState({}, '', url);
-      onViewedDocChanged();
-      renderTabNav();
-      switchTab('cohortAi');
-    });
-  } else {
-    if (header) header.classList.add('hidden');
-  }
 }
 
 function switchTab(id){
@@ -1830,22 +1691,7 @@ function renderOverview(){
   `;
 
   if(state.isAdmin && !state.viewedIsSelf){
-    $('#backToSelfBtn')?.addEventListener('click', ()=>{
-      if(state.unsubViewed){
-        state.unsubViewed();
-        state.unsubViewed = null;
-      }
-      state.viewedIsSelf = true;
-      state.viewedUid = state.user.uid;
-      state.viewedDoc = state.selfDoc;
-      setLive(true);
-      const url = new URL(window.location.href);
-      url.searchParams.delete('student');
-      window.history.replaceState({}, '', url);
-      onViewedDocChanged();
-      renderTabNav();
-      switchTab('cohortAi');
-    });
+    $('#backToSelfBtn').addEventListener('click', ()=> selectStudent(state.user.uid, state.user.displayName));
   }
 
   if(trend.status!=='insufficient'){
@@ -2491,9 +2337,9 @@ async function renderLeaderboard(){
           <thead><tr><th>Rank</th><th>Student</th><th>Points</th><th>Solved</th><th>Accuracy</th><th>Best Streak</th></tr></thead>
           <tbody>${rows.map((r,i)=>{
             const isMe = state.user && (r.uid === state.user.uid || (state.user.email && r.email === state.user.email));
-            return `<tr${isMe?' style="background:rgba(99,102,241,0.18); font-weight:bold;"':''}${state.isAdmin?' class="clickable" data-uid="'+esc(r.uid)+'" data-name="'+esc(r.name)+'"':''}>
+            return `<tr${isMe?' style="background:rgba(99,102,241,0.18); font-weight:bold;"':''}>
             <td><span class="mono" style="font-weight:800; ${i<3?`color:${i===0?'#fbbf24':i===1?'#94a3b8':'#d97706'};`:''}">#${i+1}</span></td>
-            <td>${esc(r.name)}${isMe ? ' <em style="color:#a5b4fc; font-size:12px;">(You)</em>' : ''}${state.isAdmin ? ' <span style="font-size:11px; color:var(--primary); font-weight:600;">(View →)</span>' : ''}</td>
+            <td>${esc(r.name)}${isMe ? ' <em style="color:#a5b4fc; font-size:12px;">(You)</em>' : ''}</td>
             <td class="mono">${fmtNum(r.points)}</td><td class="mono">${fmtNum(r.totalSolved)}</td>
             <td>${r.accuracy==null?'N/A':fmtPct(r.accuracy)}</td><td class="mono">${fmtNum(r.maxStreak)}</td>
           </tr>`;
@@ -2501,12 +2347,6 @@ async function renderLeaderboard(){
         </table></div>
       </div>
     `;
-
-    if(state.isAdmin){
-      $all('tr[data-uid]', panel).forEach(tr=>{
-        tr.addEventListener('click', ()=> selectStudent(tr.dataset.uid, tr.dataset.name));
-      });
-    }
   }catch(err){
     panel.innerHTML = `<div class="empty-state"><div class="emoji">⚠️</div><h3>Couldn't load the leaderboard</h3><p>${esc(err.message||String(err))}</p></div>`;
   }

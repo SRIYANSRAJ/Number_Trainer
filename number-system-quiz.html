@@ -820,13 +820,11 @@
 
     .big-number {
       font-family: 'JetBrains Mono', monospace;
-      font-size: clamp(20px, 4vw, 38px);
+      font-size: 42px;
       font-weight: 800;
       color: #ffffff;
       word-break: break-all;
-      letter-spacing: -0.5px;
-      line-height: 1.3;
-      padding: 10px;
+      letter-spacing: -1.5px;
     }
 
     /* Interaction */
@@ -835,9 +833,9 @@
       background: rgba(30, 41, 59, 0.85);
       border: 2px solid rgba(255, 255, 255, 0.15);
       color: #ffffff;
-      padding: 16px;
+      padding: 18px;
       border-radius: 18px;
-      font-size: clamp(15px, 2.5vw, 22px);
+      font-size: 22px;
       text-align: center;
       font-family: monospace;
       outline: none;
@@ -1166,7 +1164,6 @@
           <option value="8" selected>8-Bit</option>
           <option value="16">16-Bit</option>
           <option value="32">32-Bit</option>
-          <option value="64">64-Bit</option>
         </select>
       </div>
       <div class="field-group">
@@ -1300,18 +1297,9 @@
     let questionStartTime = Date.now();
 
     function randInt(bits) {
-      if (bits <= 30) {
-        const max = Math.pow(2, bits);
-        const min = Math.pow(2, bits - 4) || 0;
-        return BigInt(Math.floor(Math.random() * (max - min) + min));
-      }
-      const hexDigits = Math.ceil(bits / 4);
-      let hex = "";
-      for (let i = 0; i < hexDigits; i++) {
-        const digit = (i === 0) ? (Math.floor(Math.random() * 8) + 8) : Math.floor(Math.random() * 16);
-        hex += digit.toString(16);
-      }
-      return BigInt("0x" + hex);
+      const max = Math.pow(2, bits);
+      const min = Math.pow(2, bits - 4) || 0;
+      return Math.floor(Math.random() * (max - min) + min);
     }
 
     /**
@@ -1526,16 +1514,15 @@
       const tName = BASES[q.tB] || `Base ${q.tB}`;
 
       const prompt = `You are an expert Computer Science and Digital Logic tutor.
-Provide a clean, beautifully formatted, step-by-step mathematical explanation for converting the number "${q.qStr}" from Base ${q.sB} (${sName}) to Base ${q.tB} (${tName}):
+Provide a clear, aesthetic, step-by-step mathematical explanation for converting the number "${q.qStr}" from Base ${q.sB} (${sName}) to Base ${q.tB} (${tName}):
 - Source Number: ${q.qStr} in Base ${q.sB} (${sName})
 - Target Base: Base ${q.tB} (${tName})
 - Correct Output: ${q.aStr}
 
 CRITICAL FORMATTING INSTRUCTIONS:
 1. DO NOT write or output any programming code, Python scripts, function definitions, code blocks, or library imports (e.g. "import math", "import numpy", "def convert()").
-2. DO NOT use raw LaTeX equations like \\frac, \\begin{align}, \\text{}, or dollar-sign math ($$). Use clean Unicode symbols (×, ÷, +, −, ➔, 2³, 16¹, Base 16).
-3. Use clean Markdown headings (### for title, #### for steps), numbered lists (1., 2., 3.), bold text, and inline code backticks (\`...\`) for numbers and intermediate digits.
-4. End clearly with "**Final Result:** \`${q.aStr}\`".`;
+2. Show clear, concise step-by-step mathematical calculations for human students using place-value expansions or successive division.
+3. Keep the solution aesthetic, well-structured with numbered steps (1., 2., 3.), and end clearly with "Final Result: ${q.aStr}".`;
 
       if (window.callGeminiAPI) {
         q.aiSolutionPromise = window.callGeminiAPI(prompt).then(sol => {
