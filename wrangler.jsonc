@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "number-trainer",
+  "compatibility_date": "2026-09-03",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": ".",
+    "exclude": [
+      "node_modules/**/*",
+      ".git/**/*",
+      ".env*",
+      "bun.lock",
+      "package.json",
+      "package-lock.json",
+      "README.md",
+      "LICENSE",
+      ".gitignore",
+      "preview.png"
+    ]
+  }
+}
