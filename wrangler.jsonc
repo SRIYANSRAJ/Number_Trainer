@@ -16,8 +16,7 @@
       "package-lock.json",
       "README.md",
       "LICENSE",
-      ".gitignore",
-      "preview.png"
+      ".gitignore"
     ]
   }
 }
