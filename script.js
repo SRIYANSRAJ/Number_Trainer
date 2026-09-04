@@ -1,7 +1,7 @@
 /* =========================================================================
    NUMBER SYSTEM TRAINER — AUTHENTICATION, ROUTE PROTECTION & POINTS ENGINE
-   Authors: Sriyans & Devashish
-   Copyright © 2026 Sriyans & Devashish
+   Authors: Team KITT
+   Copyright © 2026 Team KITT
    ========================================================================= */
 
 // =========================================================================
@@ -59,13 +59,23 @@ if (typeof fetch !== 'undefined') {
 const THEME_KEY = 'numSysTheme';
 
 function applyTheme(theme) {
-  const currentTheme = theme || localStorage.getItem(THEME_KEY) || 'dark';
+  const currentTheme = theme
+    || localStorage.getItem(THEME_KEY)
+    || localStorage.getItem('theme')
+    || localStorage.getItem('numsys_theme')
+    || 'dark';
+
   document.documentElement.setAttribute('data-theme', currentTheme);
+
+  const meta = document.getElementById('themeMetaColor') || document.querySelector('meta[name="theme-color"]');
+  if (meta) {
+    meta.setAttribute('content', currentTheme === 'light' ? '#f4fbf6' : '#050805');
+  }
 
   const toggleBtns = document.querySelectorAll('.theme-toggle-btn');
   toggleBtns.forEach(btn => {
-    const icon = btn.querySelector('.theme-toggle-icon');
-    const label = btn.querySelector('.theme-toggle-label');
+    const icon = btn.querySelector('.theme-toggle-icon, .theme-icon');
+    const label = btn.querySelector('.theme-toggle-label, .theme-text');
     if (currentTheme === 'light') {
       if (icon) icon.textContent = '☀️';
       if (label) label.textContent = 'Light';
@@ -83,8 +93,16 @@ function applyTheme(theme) {
 function toggleTheme() {
   const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
   const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-  localStorage.setItem(THEME_KEY, newTheme);
+  try {
+    localStorage.setItem(THEME_KEY, newTheme);
+    localStorage.setItem('theme', newTheme);
+    localStorage.setItem('numsys_theme', newTheme);
+  } catch (_) {}
   applyTheme(newTheme);
+  // If in analytics page with rerenderChart active, re-render charts for theme contrast
+  if (typeof window.renderActiveTab === 'function') {
+    try { window.renderActiveTab(); } catch (_) {}
+  }
 }
 
 // Apply immediately on script load to prevent any flash

@@ -4,8 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Number Base Arithmetic Trainer</title>
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#050805" id="themeMetaColor">
+<script>
+  (function () {
+    try {
+      var savedTheme = localStorage.getItem('numSysTheme') || localStorage.getItem('theme') || localStorage.getItem('numsys_theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      var meta = document.getElementById('themeMetaColor');
+      if (meta) meta.setAttribute('content', savedTheme === 'light' ? '#f4fbf6' : '#050805');
+    } catch(e){}
+  })();
+</script>
 <!-- Unified Coding Logo Favicon -->
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%236366f1'/%3E%3Cstop offset='100%25' stop-color='%23a855f7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='24' fill='url(%23g)'/%3E%3Cpath d='M30 32 L16 50 L30 68 M70 32 L84 50 L70 68 M56 22 L44 78' stroke='white' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%2300FF66'/%3E%3Cstop offset='100%25' stop-color='%2300B84A'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='24' fill='url(%23g)'/%3E%3Cpath d='M30 32 L16 50 L30 68 M70 32 L84 50 L70 68 M56 22 L44 78' stroke='%23050805' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
 <!-- Firebase SDK & Route Protection Script -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -13,35 +25,40 @@
 <script src="script.js"></script>
 <style>
   /* ============================================================
-     DESIGN TOKENS — CINEMATIC DARK THEME
+     DESIGN TOKENS — HIGH-TECH GREEN CINEMATIC SUITE
      ============================================================ */
   :root{
-    --bg:            #070a12;
-    --bg-soft:       rgba(30, 41, 59, 0.65);
-    --card:          rgba(15, 23, 42, 0.82);
-    --card-hover:    rgba(30, 41, 59, 0.85);
-    --border:        rgba(255, 255, 255, 0.12);
-    --primary:       #6366f1;
-    --primary-dark:  #4f46e5;
-    --success:       #10b981;
+    --bg:            #050805;
+    --bg-soft:       #101810;
+    --card:          #0A0F0B;
+    --card-hover:    #142014;
+    --border:        #18351F;
+    --border-active: #00FF66;
+    --primary:       #00FF66;
+    --primary-hover: #00E65C;
+    --primary-dark:  #00B84A;
+    --primary-bright:#39FF88;
+    --primary-light: #86FFB0;
+    --success:       #00FF66;
     --error:         #f43f5e;
-    --purple:        #a855f7;
+    --purple:        #00B84A;
     --warning:       #f59e0b;
-    --muted:         #94a3b8;
-    --text:          #f8fafc;
-    --shadow:        0 16px 40px rgba(0,0,0,.60), 0 0 25px rgba(99,102,241,.15);
-    --answer-filled-bg: rgba(99, 102, 241, 0.28);
-    --header-grad-a: #ffffff;
-    --header-grad-b: #a5b4fc;
-    --radial-1:      rgba(99,102,241,.25);
-    --radial-2:      rgba(168,85,247,.20);
+    --muted:         #94A39A;
+    --text:          #F0FFF4;
+    --btn-text:      #050805;
+    --shadow:        0 16px 40px rgba(0,0,0,.70), 0 0 25px rgba(0,255,102,.15);
+    --answer-filled-bg: rgba(0, 255, 102, 0.16);
+    --header-grad-a: #F0FFF4;
+    --header-grad-b: #39FF88;
+    --radial-1:      rgba(0,255,102,.15);
+    --radial-2:      rgba(0,184,74,.12);
 
-    /* Refined modern ambient mesh color tokens — cinematic neon space */
-    --blob-indigo:  rgba(99,102,241,.32);
-    --blob-purple:  rgba(168,85,247,.28);
-    --blob-emerald: rgba(16,185,129,.20);
-    --blob-blue:    rgba(59,130,246,.25);
-    --blob-opacity: .90;
+    /* Refined modern ambient mesh color tokens — high-tech cyber emerald */
+    --blob-indigo:  rgba(0,255,102,.16);
+    --blob-purple:  rgba(0,184,74,.14);
+    --blob-emerald: rgba(57,255,136,.12);
+    --blob-blue:    rgba(22,163,74,.12);
+    --blob-opacity: .85;
     --blob-blur:    65px;
 
     --box-size:      44px;
@@ -130,12 +147,12 @@
   .nav-switch-link{
     display:inline-flex; align-items:center; gap:6px;
     font-size:13px; font-weight:700; text-decoration:none;
-    color:#fff; background:linear-gradient(120deg, var(--primary), var(--purple));
+    color:var(--btn-text); background:linear-gradient(120deg, var(--primary), var(--primary-dark));
     padding:9px 18px; border-radius:999px;
-    box-shadow:0 8px 20px rgba(59,130,246,.3);
+    box-shadow:0 8px 20px rgba(0,255,102,.25);
     transition: transform .2s ease, box-shadow .2s ease;
   }
-  .nav-switch-link:hover{ transform:translateY(-2px); box-shadow:0 12px 26px rgba(59,130,246,.4); }
+  .nav-switch-link:hover{ transform:translateY(-2px); box-shadow:0 12px 26px rgba(0,255,102,.35); }
 
   .section-block{
     width:100%; max-width:900px; margin-bottom:22px;
@@ -167,10 +184,10 @@
     padding:18px 16px;
     cursor:pointer;
     text-align:left;
-    box-shadow:0 2px 8px rgba(15,23,42,.04);
+    box-shadow:0 2px 8px rgba(0,0,0,.2);
     transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease, background .22s ease;
   }
-  .mode-card:hover{ transform:translateY(-3px); border-color:var(--primary); background:var(--card-hover); box-shadow:0 14px 28px rgba(37,99,235,.14); }
+  .mode-card:hover{ transform:translateY(-3px); border-color:var(--primary); background:var(--card-hover); box-shadow:0 14px 28px rgba(0,255,102,.15); }
   .mode-card:active{ transform:translateY(-1px) scale(.98); }
 
   .mode-card .icon{ font-size:24px; margin-bottom:8px; display:block; }
@@ -209,7 +226,7 @@
   }
   .pill .pill-count{ font-size:10.5px; font-weight:600; opacity:.75; }
   .pill:hover{ border-color:var(--primary); color:var(--text); }
-  .pill.active{ background:var(--primary); border-color:var(--primary); color:#fff; box-shadow:0 4px 14px rgba(59,130,246,.4); }
+  .pill.active{ background:var(--primary); border-color:var(--primary); color:var(--btn-text); font-weight:700; box-shadow:0 4px 14px rgba(0,255,102,.35); }
   .pill.active .pill-count{ opacity:.9; }
 
   .setting-hint{ width:100%; font-size:11.5px; color:var(--muted); margin-top:8px; }
@@ -389,7 +406,7 @@
   }
   .single-answer-input:focus{
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(99,102,241,0.2);
+    box-shadow: 0 0 0 3px rgba(0,255,102,0.22);
     background: var(--answer-filled-bg);
   }
   .single-answer-input.correct{
@@ -456,20 +473,20 @@
     margin-bottom:22px;
   }
   .btn{
-    border:none; border-radius:16px; padding:13px 22px; font-size:14px; font-weight:600;
-    cursor:pointer; color:#fff; display:flex; align-items:center; gap:6px;
+    border:none; border-radius:16px; padding:13px 22px; font-size:14px; font-weight:700;
+    cursor:pointer; color:var(--btn-text); display:flex; align-items:center; gap:6px;
     transition: transform .18s ease, box-shadow .25s ease, filter .2s ease, background .2s ease;
-    box-shadow:0 8px 20px rgba(37,99,235,.18);
+    box-shadow:0 8px 20px rgba(0,255,102,.2);
   }
-  .btn:hover{ transform:translateY(-2px); box-shadow:0 12px 26px rgba(37,99,235,.24); }
-  .btn:active{ transform:translateY(0) scale(.97); box-shadow:0 4px 12px rgba(37,99,235,.18); }
-  .btn.primary{ background:linear-gradient(135deg,var(--primary),var(--primary-dark)); }
+  .btn:hover{ transform:translateY(-2px); box-shadow:0 12px 26px rgba(0,255,102,.3); }
+  .btn:active{ transform:translateY(0) scale(.97); box-shadow:0 4px 12px rgba(0,255,102,.18); }
+  .btn.primary{ background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:var(--btn-text); }
   .btn.ghost{
     background:var(--card); border:1px solid var(--border); color:var(--text);
-    box-shadow:0 4px 12px rgba(15,23,42,.05);
+    box-shadow:0 4px 12px rgba(0,0,0,.2);
   }
-  .btn.ghost:hover{ border-color:var(--primary); background:var(--card-hover); box-shadow:0 8px 18px rgba(15,23,42,.08); }
-  .btn.success{ background:linear-gradient(135deg,#22c55e,#16a34a); box-shadow:0 8px 20px rgba(22,163,74,.2); }
+  .btn.ghost:hover{ border-color:var(--primary); background:var(--card-hover); box-shadow:0 8px 18px rgba(0,255,102,.12); }
+  .btn.success{ background:linear-gradient(135deg,#00FF66,#00B84A); color:var(--btn-text); box-shadow:0 8px 20px rgba(0,255,102,.25); }
   .btn:disabled{ opacity:.4; cursor:not-allowed; transform:none !important; filter:none !important; box-shadow:none !important; }
 
   /* stats grid */
@@ -576,10 +593,10 @@
     pointer-events: auto;
   }
   .lb-modal {
-    background: var(--card, #0f172a);
-    border: 1px solid var(--border, rgba(255, 255, 255, 0.15));
+    background: var(--card, #0A0F0B);
+    border: 1px solid var(--border, #18351F);
     border-radius: var(--radius, 20px);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 0 35px rgba(99, 102, 241, 0.22);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 0 35px rgba(0, 255, 102, 0.18);
     width: 100%;
     max-width: 680px;
     padding: 24px;
@@ -616,84 +633,105 @@
 
   /* Light Theme Overrides */
   [data-theme="light"] {
-    --bg:            #eef2f8;
-    --bg-soft:       #e4eaf3;
-    --card:          rgba(255, 255, 255, 0.88);
-    --card-hover:    #f8fafc;
-    --border:        #dbe3ee;
-    --primary:       #2563eb;
-    --primary-dark:  #1d4ed8;
-    --muted:         #64748b;
-    --text:          #0f172a;
-    --shadow:        0 10px 26px rgba(15,23,42,.08);
-    --answer-filled-bg: #e7f0ff;
-    --header-grad-a: #0f172a;
-    --header-grad-b: #2563eb;
-    --radial-1:      rgba(37,99,235,.07);
-    --radial-2:      rgba(22,163,74,.06);
+    --bg:            #F7FAF8;
+    --bg-soft:       #EEF7F0;
+    --card:          #FFFFFF;
+    --card-hover:    #F0FBF3;
+    --border:        #D7E5DA;
+    --border-active: #16A34A;
+    --primary:       #16A34A;
+    --primary-hover: #22C55E;
+    --primary-dark:  #15803D;
+    --primary-bright:#22C55E;
+    --primary-light: #86FFB0;
+    --success:       #16A34A;
+    --error:         #dc2626;
+    --purple:        #15803D;
+    --warning:       #d97706;
+    --muted:         #526157;
+    --text:          #102016;
+    --btn-text:      #FFFFFF;
+    --shadow:        0 10px 26px rgba(16,32,22,.08);
+    --answer-filled-bg: #e1f5e6;
+    --header-grad-a: #102016;
+    --header-grad-b: #16A34A;
+    --radial-1:      rgba(22,163,74,.08);
+    --radial-2:      rgba(34,197,94,.06);
 
-    --blob-indigo:  rgba(99,102,241,.18);
-    --blob-purple:  rgba(168,85,247,.14);
-    --blob-emerald: rgba(16,185,129,.12);
-    --blob-blue:    rgba(59,130,246,.18);
-    --blob-opacity: .85;
+    --blob-indigo:  rgba(22,163,74,.12);
+    --blob-purple:  rgba(34,197,94,.08);
+    --blob-emerald: rgba(21,128,61,.08);
+    --blob-blue:    rgba(22,163,74,.10);
+    --blob-opacity: .75;
   }
 
   [data-theme="light"] body {
-    color: #0f172a;
+    background: #F7FAF8;
+    color: #102016;
   }
 
   [data-theme="light"] .dashboard-panel,
   [data-theme="light"] .section-block,
   [data-theme="light"] .problem-card,
   [data-theme="light"] .setting-card,
+  [data-theme="light"] .settings-panel,
   [data-theme="light"] .stats-panel,
   [data-theme="light"] .lb-modal {
-    background: rgba(255, 255, 255, 0.88);
-    border-color: rgba(219, 227, 238, 0.85);
-    color: #0f172a;
-    box-shadow: 0 12px 32px rgba(37,99,235,0.10);
+    background: #FFFFFF;
+    border-color: #D7E5DA;
+    color: #102016;
+    box-shadow: 0 10px 30px rgba(16, 32, 22, 0.06);
   }
 
   [data-theme="light"] .dash-card {
-    background: rgba(255, 255, 255, 0.75);
-    border-color: rgba(219, 227, 238, 0.9);
+    background: #EEF7F0;
+    border-color: #D7E5DA;
+  }
+
+  [data-theme="light"] .mode-card {
+    background: #EEF7F0;
+    border-color: #D7E5DA;
+  }
+  [data-theme="light"] .mode-card:hover {
+    background: #F0FBF3;
+    border-color: #16A34A;
+    box-shadow: 0 10px 24px rgba(22, 163, 74, 0.15);
   }
 
   [data-theme="light"] .time-greeting,
   [data-theme="light"] .theme-toggle-btn {
-    background: rgba(255, 255, 255, 0.75);
-    border-color: rgba(255, 255, 255, 0.9);
-    color: #0f172a;
-    box-shadow: 0 4px 20px rgba(37,99,235,0.12);
+    background: #FFFFFF;
+    border-color: #D7E5DA;
+    color: #102016;
+    box-shadow: 0 4px 16px rgba(16, 32, 22, 0.06);
   }
 
   [data-theme="light"] .time-greeting .greet-name {
-    color: #2563eb;
+    color: #16A34A;
   }
 
   [data-theme="light"] .lb-overlay {
-    background: rgba(15, 23, 42, 0.50);
+    background: rgba(16, 32, 22, 0.45);
   }
 
   [data-theme="light"] select,
   [data-theme="light"] input[type="text"],
   [data-theme="light"] input[type="number"] {
     background: #ffffff;
-    color: #0f172a;
-    border-color: #cbd5e1;
+    color: #102016;
+    border-color: #D7E5DA;
   }
 
   [data-theme="light"] .bit-box {
     background: #ffffff;
-    border-color: #cbd5e1;
-    color: #0f172a;
+    border-color: #D7E5DA;
+    color: #102016;
   }
 
   [data-theme="light"] .bit-box.one {
-    background: #e0e7ff;
-    border-color: #a5b4fc;
-    color: #3730a3;
+    background: #EEF7F0;
+    border-color: #86FFB0;
+    color: #15803D;
   }
 
   [data-theme="light"] .answer-box.correct,
@@ -772,12 +810,12 @@
     border-radius: 14px 14px 0 0;
   }
   .dash-card.pts-card::before  { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
-  .dash-card.acc-card::before  { background: linear-gradient(90deg, #10b981, #059669); }
-  .dash-card.sol-card::before  { background: linear-gradient(90deg, #6366f1, #4f46e5); }
+  .dash-card.acc-card::before  { background: linear-gradient(90deg, #00FF66, #00B84A); }
+  .dash-card.sol-card::before  { background: linear-gradient(90deg, #00E65C, #15803D); }
   .dash-card.str-card::before  { background: linear-gradient(90deg, #f97316, #ea580c); }
   .dash-card.err-card::before  { background: linear-gradient(90deg, #f43f5e, #e11d48); }
 
-  .dash-card:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0,0,0,0.5); }
+  .dash-card:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0,255,102,0.12); }
   .dash-card .dc-icon { font-size: 22px; margin-bottom: 6px; display: block; }
   .dash-card .dc-val {
     font-size: 24px;
@@ -819,11 +857,11 @@
     transition: all .2s ease;
   }
   .lb-btn.unlocked {
-    background: linear-gradient(135deg, var(--primary), var(--purple));
-    color: #fff;
-    box-shadow: 0 6px 20px rgba(99,102,241,0.45);
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: var(--btn-text);
+    box-shadow: 0 6px 20px rgba(0,255,102,0.35);
   }
-  .lb-btn.unlocked:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(99,102,241,0.55); }
+  .lb-btn.unlocked:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(0,255,102,0.45); }
   .lb-btn.locked {
     background: var(--bg-soft);
     color: var(--muted);
@@ -847,7 +885,7 @@
   }
   .lb-progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--primary), var(--purple));
+    background: linear-gradient(90deg, var(--primary), var(--primary-dark));
     border-radius: 999px;
     transition: width .5s ease;
   }
@@ -858,7 +896,7 @@
   .lb-overlay {
     position: fixed; inset: 0;
     z-index: 9200;
-    background: rgba(3, 7, 18, 0.82);
+    background: rgba(5, 8, 5, 0.85);
     backdrop-filter: blur(10px);
     display: flex;
     align-items: center;
@@ -870,17 +908,17 @@
   }
   .lb-overlay.show { opacity: 1; pointer-events: auto; }
   .lb-modal {
-    background: rgba(15, 23, 42, 0.94);
+    background: var(--card);
     backdrop-filter: blur(28px);
     -webkit-backdrop-filter: blur(28px);
-    border: 1.5px solid rgba(255,255,255,0.15);
+    border: 1.5px solid var(--border);
     border-radius: 28px;
     padding: 30px;
     width: 100%;
     max-width: 520px;
     max-height: 80vh;
     overflow-y: auto;
-    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.8), 0 0 40px rgba(99, 102, 241, 0.2);
+    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.8), 0 0 40px rgba(0, 255, 102, 0.15);
     transform: translateY(24px) scale(.97);
     transition: transform .35s cubic-bezier(0.34,1.56,0.64,1);
   }
@@ -924,7 +962,7 @@
   .lb-rank.silver { color: #64748b; }
   .lb-rank.bronze { color: #92400e; }
   .lb-pts-val { font-family: var(--font-mono); font-weight: 800; color: var(--primary); }
-  .lb-me td { background: rgba(99,102,241,0.07); font-weight: 600; }
+  .lb-me td { background: rgba(0, 255, 102, 0.08); font-weight: 600; }
   .lb-loading { text-align: center; color: var(--muted); padding: 32px 0; font-size: 14px; }
   .lb-empty   { text-align: center; color: var(--muted); padding: 32px 0; font-size: 14px; }
 
@@ -995,7 +1033,7 @@
       align-items: center;
       justify-content: space-between;
       padding: 14px 18px;
-      background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(99,102,241,0.12));
+      background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(0,255,102,0.10));
       border: 1px solid rgba(245,158,11,0.3);
       border-radius: 16px;
     }
@@ -1088,7 +1126,7 @@
     <p class="lb-sub">Top 10 players by Digital Points</p>
     <div id="lbBody"><p class="lb-loading">Loading rankings…</p></div>
     <div style="margin-top:18px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.12); text-align:center;">
-      <a href="analytics.html" class="nav-switch-link" style="display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:10px 20px; border-radius:10px; background:linear-gradient(135deg,#6366f1,#4f46e5); color:#ffffff; font-weight:700; font-size:13.5px; text-decoration:none; box-shadow:0 4px 14px rgba(99,102,241,0.35); border:none;">
+      <a href="analytics.html" class="nav-switch-link" style="display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:10px 20px; border-radius:10px; background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:var(--btn-text); font-weight:700; font-size:13.5px; text-decoration:none; box-shadow:0 4px 14px rgba(0,255,102,0.35); border:none;">
         📊 Show Full Analytics
       </a>
     </div>
@@ -1320,7 +1358,7 @@
     </div>
 
     <footer class="home-footer">
-      Crafted with Passion &amp; Precision by <strong>Sriyans &amp; Devashish</strong> · <a href="about.html" style="color:var(--text); text-decoration:underline;">📖 About &amp; Documentation</a> · <a href="mailto:sriyansraj02@gmail.com">sriyansraj02@gmail.com</a> · &copy; <span id="creditYear"></span>
+      Crafted with Passion &amp; Precision by <strong>Team KITT</strong> · <a href="about.html" style="color:var(--text); text-decoration:underline;">📖 About &amp; Documentation</a> · <a href="mailto:sriyansraj02@gmail.com">sriyansraj02@gmail.com</a> · &copy; <span id="creditYear"></span>
     </footer>
   </section>
 
@@ -1362,7 +1400,7 @@
       <button class="btn ghost" id="prevBtn">⟵ Previous</button>
       <button class="btn ghost" id="nextBtn">Next ⟶</button>
       <button class="btn success" id="randomBtn">🎲 Random Question</button>
-      <button class="btn ghost ai-sol-btn" id="aiSolBtn" style="display:none; background: linear-gradient(135deg, rgba(99,102,241,0.18), rgba(168,85,247,0.18)); border:1px solid rgba(99,102,241,0.4); color:var(--primary); font-weight:700;">✨ AI Solution</button>
+      <button class="btn ghost ai-sol-btn" id="aiSolBtn" style="display:none; background: linear-gradient(135deg, rgba(0,255,102,0.12), rgba(0,184,74,0.12)); border:1px solid rgba(0,255,102,0.35); color:var(--primary); font-weight:700;">✨ AI Solution</button>
     </div>
 
     <div class="stats-panel">
@@ -2867,7 +2905,7 @@ function formatMarkdownToHTML(md) {
       const bulletText = formatted.replace(/^[-*]\s+/, '');
       out.push(`
         <div class="sol-step-item">
-          <div class="sol-step-badge" style="background:rgba(99,102,241,0.2); color:#a5b4fc; box-shadow:none;">•</div>
+          <div class="sol-step-badge" style="background:rgba(0,255,102,0.18); color:var(--primary); box-shadow:none;">•</div>
           <div class="sol-step-text">${bulletText}</div>
         </div>
       `);
@@ -3068,7 +3106,7 @@ function renderHistoryList() {
       <div style="background:var(--bg-soft); border:1px solid var(--border); border-radius:12px; padding:12px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
         <div style="display:flex; flex-direction:column; gap:2px;">
           <div style="display:flex; align-items:center; gap:8px;">
-            <span style="font-size:11px; font-weight:700; background:rgba(99,102,241,0.12); color:var(--primary); padding:2px 8px; border-radius:6px;">${item.type}</span>
+            <span style="font-size:11px; font-weight:700; background:rgba(0,255,102,0.12); color:var(--primary); padding:2px 8px; border-radius:6px;">${item.type}</span>
             <span style="font-size:13px; font-weight:700; color:var(--text);">${item.problem}</span>
           </div>
           <div style="font-size:12px; color:var(--muted); font-family:var(--font-mono); margin-top:3px;">
