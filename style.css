@@ -690,12 +690,20 @@ body::before {
 .auth-toast.show {
   transform: translateX(-50%) translateY(0);
   opacity: 1;
+  pointer-events: auto;
 }
 
 .auth-toast.success {
   background: linear-gradient(135deg, #00B84A, #008736);
   color: #F0FFF4;
   border: 1px solid #00FF66;
+}
+
+.auth-toast.warning {
+  background: linear-gradient(135deg, #1f180a, #0d0a04);
+  color: #fef08a;
+  border: 1px solid #f59e0b;
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.25);
 }
 
 .auth-toast.error {

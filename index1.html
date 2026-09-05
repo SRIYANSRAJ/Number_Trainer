@@ -2971,17 +2971,27 @@ function loadDashboard() {
   if (el('dashStreak'))   el('dashStreak').textContent   = s.maxStreak;
   if (el('dashErrors'))   el('dashErrors').textContent   = s.errors;
 
-  // Leaderboard is unlocked for everyone
-  if (el('lbProgressFill'))  el('lbProgressFill').style.width = '100%';
-  if (el('lbProgressCount')) el('lbProgressCount').textContent = 'Unlocked';
+  // Leaderboard qualification: 10 solved questions needed to rank on the Leaderboard
+  const minRequired = 10;
+  const isLbQualified = totalSolved >= minRequired;
+  const progressPct = Math.min(100, Math.round((totalSolved / minRequired) * 100));
+
+  if (el('lbProgressFill'))  el('lbProgressFill').style.width = progressPct + '%';
+  if (el('lbProgressCount')) el('lbProgressCount').textContent = isLbQualified ? `Qualified (${totalSolved}/10)` : `${totalSolved}/${minRequired}`;
 
   const lbBtn = el('lbBtn');
   if (lbBtn) {
     lbBtn.classList.remove('locked');
     lbBtn.classList.add('unlocked');
     lbBtn.textContent = '🏆 Leaderboard';
-    lbBtn.title = 'View the Leaderboard';
-    if (el('lbProgressTxt')) el('lbProgressTxt').textContent = '🏆 Leaderboard is available for all learners!';
+    lbBtn.title = isLbQualified
+      ? 'View Leaderboard (You are qualified!)'
+      : `View Leaderboard (Solve ${minRequired - totalSolved} more to qualify your name)`;
+  }
+  if (el('lbProgressTxt')) {
+    el('lbProgressTxt').textContent = isLbQualified
+      ? '🏆 You have solved 10+ questions and qualified for the Leaderboard!'
+      : `Solve ${minRequired - totalSolved} more question${minRequired - totalSolved === 1 ? '' : 's'} to qualify your name for the Leaderboard`;
   }
 }
 
@@ -3007,21 +3017,43 @@ async function renderLeaderboard() {
   if (!body) return;
   body.innerHTML = '<p class="lb-loading">Loading rankings…</p>';
 
+  const s = window.NST ? window.NST.getStats() : null;
+  const mySolved = s ? Number(s.totalSolved || 0) : 0;
+  const isMeQualified = mySolved >= 10;
+
   let rows = [];
   if (window.NST && window.NST.fetchLeaderboard) {
-    rows = await window.NST.fetchLeaderboard();
+    rows = await window.NST.fetchLeaderboard(10);
   }
 
+  // Strict filter: only learners who have solved at least 10 questions qualify
+  rows = (rows || []).filter(r => Number(r.totalSolved || 0) >= 10);
+
+  // Status banner indicating qualification requirement
+  const statusBanner = !isMeQualified
+    ? `<div style="background:rgba(234,179,8,0.12); border:1px solid rgba(234,179,8,0.35); border-radius:8px; padding:10px 14px; margin-bottom:12px; font-size:12.5px; color:var(--text); display:flex; align-items:center; gap:10px;">
+        <span style="font-size:18px;">🔒</span>
+        <div>
+          <strong style="color:var(--text);">Leaderboard Qualification: Solve 10 questions</strong><br>
+          <span style="color:var(--muted); font-size:12px;">You have solved <b>${mySolved}/10</b> questions. Complete <b>${10 - mySolved} more</b> to rank your name on the Leaderboard!</span>
+        </div>
+      </div>`
+    : `<div style="background:rgba(0,255,102,0.1); border:1px solid rgba(0,255,102,0.3); border-radius:8px; padding:10px 14px; margin-bottom:12px; font-size:12.5px; color:var(--text); display:flex; align-items:center; gap:10px;">
+        <span style="font-size:18px;">🏆</span>
+        <div>
+          <strong style="color:var(--text);">You are qualified!</strong><br>
+          <span style="color:var(--muted); font-size:12px;">Displaying ranked learners who have solved 10 or more questions.</span>
+        </div>
+      </div>`;
+
   if (!rows || !rows.length) {
-    // Fallback: show current user only if database returns no records
-    const s = window.NST ? window.NST.getStats() : null;
-    const name = window.NST ? window.NST.getDisplayName() : 'You';
-    if (s && s.totalSolved > 0) {
-      rows = [{ name, points: s.points, totalSolved: s.totalSolved, errors: s.errors, _isMe: true }];
-    } else {
-      body.innerHTML = '<p class="lb-empty">No rankings yet. Be the first to score!</p>';
-      return;
-    }
+    body.innerHTML = statusBanner + `
+      <div class="lb-empty" style="padding:24px 16px; text-align:center;">
+        <div style="font-size:32px; margin-bottom:8px;">🏆</div>
+        <h4 style="margin:0 0 6px 0; color:var(--text); font-size:15px;">No qualified rankings yet</h4>
+        <p style="margin:0; color:var(--muted); font-size:13px;">Students must solve at least 10 questions to appear on the Leaderboard. Solve ${Math.max(0, 10 - mySolved)} more to be first!</p>
+      </div>`;
+    return;
   }
 
   // Get current user details for highlighting
@@ -3040,7 +3072,7 @@ async function renderLeaderboard() {
   const rankEmojis = ['🥇','🥈','🥉'];
   const rankClasses = ['gold','silver','bronze'];
 
-  let html = `<table class="lb-table">
+  let html = statusBanner + `<table class="lb-table">
     <thead><tr>
       <th>#</th><th>Player</th><th>Points</th><th>Solved</th><th>Accuracy</th>
     </tr></thead><tbody>`;

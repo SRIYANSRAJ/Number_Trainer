@@ -144,9 +144,10 @@ function clearLocalStats() {
   localStorage.removeItem('numSysCurrentUid');
 }
 
-function setAuthSession(userEmail = 'user@sriyansraj.com', displayName = '') {
+function setAuthSession(userEmail = 'user@sriyansraj.com', displayName = '', authType = 'local') {
   sessionStorage.setItem('numSysAuth', 'true');
   localStorage.setItem('numSysAuth', 'true');
+  localStorage.setItem('numSysAuthType', authType);
   sessionStorage.setItem('numSysUser', userEmail);
   if (displayName) localStorage.setItem('numSysName', displayName);
 
@@ -154,7 +155,7 @@ function setAuthSession(userEmail = 'user@sriyansraj.com', displayName = '') {
   if (isFirebaseReady && typeof firebase !== 'undefined' && firebase.auth) {
     try { fbUser = firebase.auth().currentUser; } catch (_) {}
   }
-  const uid = fbUser ? fbUser.uid : ('local_' + userEmail);
+  const uid = (fbUser && authType === 'firebase') ? fbUser.uid : ('local_' + userEmail);
 
   const prevUid = localStorage.getItem('numSysCurrentUid');
   if (prevUid && prevUid !== uid) {
@@ -166,6 +167,7 @@ function setAuthSession(userEmail = 'user@sriyansraj.com', displayName = '') {
 function clearAuthSession() {
   sessionStorage.removeItem('numSysAuth');
   localStorage.removeItem('numSysAuth');
+  localStorage.removeItem('numSysAuthType');
   sessionStorage.removeItem('numSysUser');
   localStorage.removeItem('numSysName');
   clearLocalStats();
@@ -323,14 +325,24 @@ function setupFirebaseAuthListener() {
       firebase.auth().onAuthStateChanged(async (user) => {
         const onLoginPage = checkIsLoginPage();
         if (user) {
-          setAuthSession(user.email, user.displayName || '');
+          setAuthSession(user.email, user.displayName || '', 'firebase');
           await loadUserStatsFromFirestore(user);
           if (onLoginPage) window.location.replace('index1.html');
         } else if (isFirebaseReady && !onLoginPage) {
+          // Do not kick out learners who are logged in locally/offline
+          const authType = localStorage.getItem('numSysAuthType') || '';
+          const currentUid = localStorage.getItem('numSysCurrentUid') || '';
+          const hasLocalAuth = localStorage.getItem('numSysAuth') === 'true' || sessionStorage.getItem('numSysAuth') === 'true';
+          if (hasLocalAuth && (authType === 'local' || currentUid.startsWith('local_'))) {
+            return;
+          }
           clearAuthSession();
           window.location.replace('index.html');
-        } else {
-          clearLocalStats();
+        } else if (onLoginPage) {
+          const hasLocalAuth = localStorage.getItem('numSysAuth') === 'true' || sessionStorage.getItem('numSysAuth') === 'true';
+          if (!hasLocalAuth) {
+            clearLocalStats();
+          }
         }
       });
     } catch (err) {
@@ -686,22 +698,29 @@ function syncStatsToFirestore(stats) {
 
 /**
  * Fetch top leaderboard from Firestore collection `userStats`.
- * Only actual registered student records are returned.
+ * Only students who have solved at least `minSolved` questions (default: 10) qualify for ranking.
+ * @param {number} [minSolved=10] Minimum number of questions solved to appear on the leaderboard.
  * @returns {Promise<Array>}
  */
-async function fetchLeaderboard() {
+async function fetchLeaderboard(minSolved = 10) {
   const mergedMap = new Map();
+  const MIN_SOLVED_REQUIRED = typeof minSolved === 'number' && minSolved >= 0 ? minSolved : 10;
 
   const fbUser = (isFirebaseReady && typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
   const myUid = fbUser ? fbUser.uid : null;
   const myEmail = fbUser ? fbUser.email : (localStorage.getItem('numSysUser') || '');
   const myName = getDisplayName();
 
-  // Helper to add documents into mergedMap
+  // Helper to add documents into mergedMap (enforcing minSolved requirement)
   const addRows = (rows) => {
     if (!Array.isArray(rows)) return;
     rows.forEach(r => {
       if (!r) return;
+      const solvedCount = Number(r.totalSolved || 0);
+
+      // Disqualify any user who has not solved at least MIN_SOLVED_REQUIRED questions
+      if (solvedCount < MIN_SOLVED_REQUIRED) return;
+
       const rEmail = r.email || '';
       const rName = r.name || '';
       const isMe = (myUid && r.uid === myUid) || (myEmail && rEmail === myEmail) || (rName && myName && rName.toLowerCase() === myName.toLowerCase()) || r._isMe || false;
@@ -719,44 +738,44 @@ async function fetchLeaderboard() {
           name: r.name || (r.email ? r.email.split('@')[0] : 'Learner'),
           email: r.email || '',
           points: Math.max(rPoints, existing ? Number(existing.points || 0) : 0),
-          totalSolved: Math.max(Number(r.totalSolved || 0), existing ? Number(existing.totalSolved || 0) : 0),
+          totalSolved: Math.max(solvedCount, existing ? Number(existing.totalSolved || 0) : 0),
           errors: Number(r.errors || 0),
           maxStreak: Math.max(Number(r.maxStreak || 0), existing ? Number(existing.maxStreak || 0) : 0),
-          accuracy: r.accuracy != null ? Number(r.accuracy) : (r.totalSolved > 0 ? Math.round(((r.totalSolved - (r.errors || 0)) / r.totalSolved) * 100) : 0),
+          accuracy: r.accuracy != null ? Number(r.accuracy) : (solvedCount > 0 ? Math.round(((solvedCount - (r.errors || 0)) / solvedCount) * 100) : 0),
           _isMe: isMe || (existing && existing._isMe) || false
         });
       }
     });
   };
 
-  // 1. Add current student's active session stats
+  // 1. Add current student's active session stats ONLY if they meet the minimum solved threshold
   try {
     const localStats = getStats();
-    if (localStats && (localStats.points > 0 || localStats.totalSolved > 0)) {
+    if (localStats && Number(localStats.totalSolved || 0) >= MIN_SOLVED_REQUIRED) {
       const fbUser = (isFirebaseReady && typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
       addRows([{
         uid: fbUser ? fbUser.uid : ('local_' + getDisplayName()),
         name: getDisplayName(),
         email: fbUser ? fbUser.email : (localStorage.getItem('numSysUser') || ''),
-        points: localStats.points,
-        totalSolved: localStats.totalSolved,
-        errors: localStats.errors,
-        maxStreak: localStats.maxStreak,
+        points: Number(localStats.points || 0),
+        totalSolved: Number(localStats.totalSolved || 0),
+        errors: Number(localStats.errors || 0),
+        maxStreak: Number(localStats.maxStreak || 0),
         _isMe: true
       }]);
     }
   } catch (e) {}
 
-  // 2. Fetch real student records from Firestore userStats
+  // 2. Fetch student records from Firestore userStats
   if (isFirebaseReady && typeof firebase !== 'undefined' && firebase.firestore) {
     try {
       const db = firebase.firestore();
       let snap;
       try {
-        snap = await db.collection('userStats').orderBy('points', 'desc').limit(20).get();
+        snap = await db.collection('userStats').orderBy('points', 'desc').limit(100).get();
       } catch (orderErr) {
         // Fallback without ordering index if index is building
-        snap = await db.collection('userStats').limit(50).get();
+        snap = await db.collection('userStats').limit(100).get();
       }
       if (snap && !snap.empty) {
         const docs = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
@@ -771,10 +790,16 @@ async function fetchLeaderboard() {
     }
   }
 
-  const result = Array.from(mergedMap.values());
-  result.sort((a, b) => Number(b.points || 0) - Number(a.points || 0));
+  const result = Array.from(mergedMap.values())
+    .filter(r => Number(r.totalSolved || 0) >= MIN_SOLVED_REQUIRED);
 
-  return result.slice(0, 20);
+  result.sort((a, b) => {
+    const pDiff = Number(b.points || 0) - Number(a.points || 0);
+    if (pDiff !== 0) return pDiff;
+    return Number(b.totalSolved || 0) - Number(a.totalSolved || 0);
+  });
+
+  return result.slice(0, 50);
 }
 
 // Expose globally so index.html, index1.html, and number-system-quiz.html can call these
@@ -832,13 +857,14 @@ document.addEventListener('DOMContentLoaded', () => {
         firebase.auth().signInWithEmailAndPassword(email, password)
           .then((cred) => cred.user.reload().then(() => cred.user))
           .then((user) => {
-            setAuthSession(user.email, user.displayName || '');
+            setAuthSession(user.email, user.displayName || '', 'firebase');
             showToast('Welcome back! Loading trainer…', 'success');
             setTimeout(() => window.location.replace('index1.html'), 700);
           })
-          .catch(handleAuthError);
+          .catch((err) => handleAuthError(err, email, ''));
       } else {
-        showToast('Firebase is not initialized. Please check your connection.', 'error');
+        // Smooth offline login fallback if Firebase cloud auth is unavailable
+        continueOffline(email, email.split('@')[0]);
       }
     });
   }
@@ -873,13 +899,14 @@ document.addEventListener('DOMContentLoaded', () => {
               .then(() => cred.user);
           })
           .then((user) => {
-            setAuthSession(user.email, name);
+            setAuthSession(user.email, name, 'firebase');
             showToast(`Account created! Welcome, ${name} 🎉`, 'success');
             setTimeout(() => window.location.replace('index1.html'), 800);
           })
-          .catch(handleAuthError);
+          .catch((err) => handleAuthError(err, email, name));
       } else {
-        showToast('Firebase is not initialized. Please check your connection.', 'error');
+        // Smooth offline registration fallback if Firebase cloud auth is unavailable
+        continueOffline(email, name);
       }
     });
   }
@@ -892,13 +919,13 @@ document.addEventListener('DOMContentLoaded', () => {
       firebase.auth().signInWithPopup(provider)
         .then((result) => {
           const user = result.user;
-          setAuthSession(user.email, user.displayName || '');
+          setAuthSession(user.email, user.displayName || '', 'firebase');
           showToast(`Signed in as ${user.displayName || user.email} 🎉`, 'success');
           setTimeout(() => window.location.replace('index1.html'), 700);
         })
-        .catch(handleAuthError);
+        .catch((err) => handleAuthError(err, '', ''));
     } else {
-      showToast('Firebase is not initialized. Please check your connection.', 'error');
+      showToast('Authentication service is initializing. Please check your connection.', 'info');
     }
   }
 
@@ -909,33 +936,62 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // =========================================================================
-// 7. AUTH ERROR HANDLER
+// 7. OFFLINE SESSION HELPER
 // =========================================================================
-function handleAuthError(error) {
-  console.error("Firebase Auth Error:", error);
+window.continueOffline = function(rawEmail, rawName) {
+  const email = (rawEmail ? decodeURIComponent(rawEmail) : 'user@learner.local').trim();
+  const name = (rawName ? decodeURIComponent(rawName) : (email.includes('@') ? email.split('@')[0] : 'Learner')).trim();
+  setAuthSession(email, name, 'local');
+  showToast(`Welcome, ${name}! Starting session…`, 'success', 2500);
+  setTimeout(() => window.location.replace('index1.html'), 400);
+};
+
+// =========================================================================
+// 8. AUTH ERROR HANDLER
+// =========================================================================
+function handleAuthError(error, fallbackEmail = '', fallbackName = '') {
+  console.warn("Firebase Auth Notice:", (error && (error.message || error.code)) || error);
   const code = error && error.code;
-  if (code === 'auth/unauthorized-domain') {
+  const cleanEmail = (fallbackEmail || '').trim();
+  const cleanName = (fallbackName || cleanEmail.split('@')[0] || 'Learner').trim();
+  const isInIframe = window.self !== window.top;
+
+  if (code === 'auth/network-request-failed') {
+    if (cleanEmail) {
+      showToast(
+        `Cloud network unreachable. <button onclick="continueOffline('${encodeURIComponent(cleanEmail)}','${encodeURIComponent(cleanName)}')" style="margin-left:8px; background:#00ff66; color:#050805; font-weight:700; border:none; padding:4px 10px; border-radius:6px; cursor:pointer;">Continue Offline →</button>`,
+        'warning',
+        9000
+      );
+    } else if (isInIframe) {
+      showToast('Sign-in network restricted by preview frame. Try opening the app in a new tab.', 'error', 6000);
+    } else {
+      showToast('Network request timed out. Please check your connection.', 'error', 5000);
+    }
+  } else if (code === 'auth/unauthorized-domain') {
     const host = window.location.hostname;
-    showToast(`Domain "${host}" not authorized. Add it in Firebase Console → Authentication → Settings → Authorized Domains.`, 'error');
+    showToast(`Domain "${host}" is not authorized. Add it in Firebase Console → Authentication → Settings → Authorized Domains.`, 'error', 8000);
+  } else if (code === 'auth/popup-blocked') {
+    showToast('Sign-in popup was blocked by browser. Please enable popups.', 'error', 6000);
   } else if (code === 'auth/email-already-in-use') {
-    showToast('That email is already registered. Try signing in instead.', 'error');
+    showToast('That email is already registered. Please sign in instead.', 'error');
   } else if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
     showToast('Incorrect email or password. Please try again.', 'error');
   } else if (code === 'auth/user-not-found') {
-    showToast('No account found with that email. Sign up first!', 'error');
+    showToast('No account found with that email. Please sign up first!', 'error');
   } else if (code === 'auth/weak-password') {
     showToast('Password is too weak. Use at least 6 characters.', 'error');
-  } else if (code === 'auth/popup-closed-by-user') {
-    showToast('Sign-in popup was closed. Please try again.', 'info');
+  } else if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+    showToast('Sign-in popup was closed before completion.', 'info');
   } else {
-    showToast(error.message || 'Authentication error. Please try again.', 'error');
+    showToast((error && error.message) || 'Authentication error. Please try again.', 'error');
   }
 }
 
 // =========================================================================
-// 8. TOAST NOTIFICATION
+// 9. TOAST NOTIFICATION (Supports HTML & Configurable Duration)
 // =========================================================================
-function showToast(msg, type = 'info') {
+function showToast(msg, type = 'info', duration = 3800) {
   let toast = document.getElementById('auth-toast');
   if (!toast) {
     toast = document.createElement('div');
@@ -943,11 +999,15 @@ function showToast(msg, type = 'info') {
     document.body.appendChild(toast);
   }
   toast.className = `auth-toast ${type}`;
-  toast.textContent = msg;
+  if (typeof msg === 'string' && msg.includes('<')) {
+    toast.innerHTML = msg;
+  } else {
+    toast.textContent = msg;
+  }
   void toast.offsetWidth;
   toast.classList.add('show');
   clearTimeout(toast._hideTimer);
-  toast._hideTimer = setTimeout(() => toast.classList.remove('show'), 3800);
+  toast._hideTimer = setTimeout(() => toast.classList.remove('show'), duration);
 }
 
 // =========================================================================

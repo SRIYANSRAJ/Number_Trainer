@@ -696,7 +696,7 @@
       The platform enforces secure user state isolation using <strong>Firebase Authentication</strong> combined with local session fallbacks:
     </p>
     <ul>
-      <li><strong>Authentication Providers:</strong> Firebase Email/Password Auth, Google OAuth integration, and seamless Guest Mode fallback.</li>
+      <li><strong>Authentication Providers:</strong> Firebase Email/Password Auth and Google OAuth integration.</li>
       <li><strong>Route Protection (<code>checkAuth</code>):</strong> Guarantees unauthorized guests are routed through the login portal (<code>index.html</code>) while maintaining persistent session tokens (<code>numSysAuth</code> &amp; <code>numSysUser</code>).</li>
       <li><strong>Data Isolation (<code>numSysCurrentUid</code>):</strong> Each user's stats, active streak, point history, mistake notebook, and preference settings are partitioned strictly by user UID. Logging out clears sensitive local state.</li>
       <li><strong>Cloud Firestore Sync:</strong> Automatically synchronizes points, maximum streaks, total questions solved, accuracy percentages, and recent problem history to the cloud <code>userStats</code> collection.</li>
