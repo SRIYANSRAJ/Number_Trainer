@@ -30,19 +30,19 @@
   <meta name="twitter:description" content="Convert Binary, Decimal, Octal and Hexadecimal numbers instantly. Crafted with Engineering Excellence by Team KITT.">
   <meta name="twitter:image" content="https://sriyansraj.github.io/Number_Trainer/preview.png">
 
-  <meta name="theme-color" content="#050805" id="themeMetaColor">
+  <meta name="theme-color" content="#0f1412" id="themeMetaColor">
   <script>
     (function () {
-      const savedTheme = localStorage.getItem('theme') || 'dark';
+      const savedTheme = localStorage.getItem('theme') || localStorage.getItem('numSysTheme') || 'dark';
       document.documentElement.setAttribute('data-theme', savedTheme);
       const meta = document.getElementById('themeMetaColor');
-      if (meta) meta.setAttribute('content', savedTheme === 'light' ? '#f4fbf6' : '#050805');
+      if (meta) meta.setAttribute('content', savedTheme === 'light' ? '#f4f6f5' : '#0f1412');
     })();
   </script>
 
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml"
-    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%2300FF66'/%3E%3Cstop offset='100%25' stop-color='%2300B84A'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='24' fill='url(%23g)'/%3E%3Cpath d='M30 32 L16 50 L30 68 M70 32 L84 50 L70 68 M56 22 L44 78' stroke='%23050805' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%232dd4bf'/%3E%3Cstop offset='100%25' stop-color='%23059669'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='24' fill='url(%23g)'/%3E%3Cpath d='M30 32 L16 50 L30 68 M70 32 L84 50 L70 68 M56 22 L44 78' stroke='%230f1412' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
 
   <link rel="stylesheet" href="style.css">
  </head>

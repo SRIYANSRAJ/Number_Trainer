@@ -4,20 +4,24 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="dark light">
-<meta name="theme-color" content="#050805" id="themeMetaColor">
+<meta name="theme-color" content="#0f1412" id="themeMetaColor">
 <title>About & Documentation — Number System Trainer</title>
+<!-- Google Fonts: Playfair Display, Plus Jakarta Sans, Fira Code -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
 <script>
   (function () {
     try {
       var savedTheme = localStorage.getItem('numSysTheme') || localStorage.getItem('theme') || localStorage.getItem('numsys_theme') || 'dark';
       document.documentElement.setAttribute('data-theme', savedTheme);
       var meta = document.getElementById('themeMetaColor');
-      if (meta) meta.setAttribute('content', savedTheme === 'light' ? '#F7FAF8' : '#050805');
+      if (meta) meta.setAttribute('content', savedTheme === 'light' ? '#f4f6f5' : '#0f1412');
     } catch(e){}
   })();
 </script>
 <!-- Unified Coding Logo Favicon -->
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%2300FF66'/%3E%3Cstop offset='100%25' stop-color='%2300B84A'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='24' fill='url(%23g)'/%3E%3Cpath d='M30 32 L16 50 L30 68 M70 32 L84 50 L70 68 M56 22 L44 78' stroke='%23050805' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%232dd4bf'/%3E%3Cstop offset='100%25' stop-color='%23059669'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='24' fill='url(%23g)'/%3E%3Cpath d='M30 32 L16 50 L30 68 M70 32 L84 50 L70 68 M56 22 L44 78' stroke='%230f1412' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <!-- Firebase SDKs & App Engine (deferred so they never block first paint) -->
 <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -27,77 +31,84 @@
 
 <style>
   /* ============================================================
-     DESIGN TOKENS — HIGH-TECH GREEN CINEMATIC SUITE
+     MIDNIGHT ACADEMIC THEME SYSTEM — DESIGN TOKENS
      ============================================================ */
   :root {
-    --bg:            #050805;
-    --bg-soft:       #101810;
-    --card:          #0A0F0B;
-    --card-hover:    #142014;
-    --border:        #18351F;
-    --border-strong: #234E2E;
-    --border-active: #00FF66;
-    --primary:       #00FF66;
-    --primary-hover: #00E65C;
-    --primary-dark:  #00B84A;
-    --primary-soft:  rgba(0, 255, 102, 0.12);
-    --success:       #00FF66;
-    --error:         #f43f5e;
-    --purple:        #00B84A;
-    --warning:       #f59e0b;
-    --muted:         #94A39A;
-    --text:          #F0FFF4;
-    --btn-text:      #050805;
-    --accent:        #39FF88;
-    --accent-strong: #86FFB0;
-    --amber:         #f59e0b;
-    --hero-grad-a:   #F0FFF4;
-    --hero-grad-b:   #39FF88;
-    --shadow:        0 16px 40px rgba(0,0,0,.70);
-    --shadow-lg:     0 24px 60px rgba(0,0,0,.80);
-    --glow:          0 0 0 1px rgba(0,255,102,.15), 0 20px 50px -15px rgba(0,255,102,.20);
-    --radial-1:      rgba(0,255,102,.14);
-    --radial-2:      rgba(0,184,74,.10);
+    --font-heading: 'Playfair Display', Georgia, serif;
+    --font-body:    'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    --font-code:    'Fira Code', 'JetBrains Mono', monospace;
+
+    --bg:            #0f1412;
+    --bg-soft:       #171f1c;
+    --card:          #171f1c;
+    --card-hover:    #1e2925;
+    --border:        #283631;
+    --border-strong: #364942;
+    --border-active: #2dd4bf;
+    --primary:       #2dd4bf;
+    --primary-hover: #14b8a6;
+    --primary-dark:  #059669;
+    --primary-soft:  rgba(45, 212, 191, 0.12);
+    --success:       #34d399;
+    --error:         #f87171;
+    --purple:        #2dd4bf;
+    --warning:       #fbbf24;
+    --muted:         #83968e;
+    --text:          #e8ebe9;
+    --btn-text:      #0d1117;
+    --accent:        #2dd4bf;
+    --accent-strong: #5eead4;
+    --amber:         #fbbf24;
+    --hero-grad-a:   #e8ebe9;
+    --hero-grad-b:   #2dd4bf;
+    --shadow:        0 12px 24px rgba(0,0,0,.40);
+    --shadow-lg:     0 20px 50px rgba(0,0,0,.60);
+    --glow:          0 0 0 1px rgba(45,212,191,.15), 0 20px 50px -15px rgba(45,212,191,.20);
+    --radial-1:      rgba(45,212,191,.10);
+    --radial-2:      rgba(5,150,105,.08);
     --radius-sm:     10px;
-    --radius:        18px;
-    --radius-lg:     22px;
-    --font-ui:       -apple-system, 'Segoe UI', system-ui, 'Helvetica Neue', Arial, sans-serif;
-    --font-mono:     ui-monospace, 'SFMono-Regular', 'Cascadia Code', Consolas, 'Courier New', monospace;
+    --radius:        14px;
+    --radius-lg:     18px;
+    --font-ui:       var(--font-body);
+    --font-mono:     var(--font-code);
     --ease:          cubic-bezier(.16,1,.3,1);
-    --header-bg:     rgba(5, 8, 5, 0.88);
+    --header-bg:     rgba(15, 20, 18, 0.94);
   }
 
   [data-theme="light"] {
-    --bg:            #F7FAF8;
-    --bg-soft:       #EEF7F0;
-    --card:          #FFFFFF;
-    --card-hover:    #F0FBF3;
-    --border:        #D7E5DA;
-    --border-strong: #B3CEB9;
-    --border-active: #16A34A;
-    --primary:       #16A34A;
-    --primary-hover: #22C55E;
-    --primary-dark:  #15803D;
-    --primary-soft:  rgba(22, 163, 74, 0.10);
-    --success:       #16A34A;
+    --bg:            #f4f6f5;
+    --bg-soft:       #eef2ef;
+    --card:          #ffffff;
+    --card-hover:    #f8faf9;
+    --border:        #d0d9d4;
+    --border-strong: #b8c7bf;
+    --border-active: #0d9488;
+    --primary:       #0d9488;
+    --primary-hover: #0f766e;
+    --primary-dark:  #047857;
+    --primary-soft:  rgba(13, 148, 136, 0.10);
+    --success:       #059669;
     --error:         #dc2626;
-    --purple:        #15803D;
+    --purple:        #0d9488;
     --warning:       #d97706;
-    --muted:         #526157;
-    --text:          #102016;
-    --btn-text:      #FFFFFF;
-    --accent:        #15803D;
-    --accent-strong: #166534;
-    --amber:         #b45309;
-    --hero-grad-a:   #102016;
-    --hero-grad-b:   #16A34A;
-    --shadow:        0 10px 26px rgba(16,32,22,.08);
-    --shadow-lg:     0 20px 45px rgba(16,32,22,.10);
-    --glow:          0 0 0 1px rgba(22,163,74,.12), 0 16px 36px -15px rgba(22,163,74,.15);
-    --radial-1:      rgba(22,163,74,.08);
-    --radial-2:      rgba(34,197,94,.06);
-    --header-bg:     rgba(247, 250, 248, 0.92);
+    --muted:         #586c64;
+    --text:          #141d19;
+    --btn-text:      #ffffff;
+    --accent:        #0d9488;
+    --accent-strong: #047857;
+    --amber:         #d97706;
+    --hero-grad-a:   #141d19;
+    --hero-grad-b:   #0d9488;
+    --shadow:        0 8px 20px rgba(20,29,25,.06);
+    --shadow-lg:     0 16px 36px rgba(20,29,25,.08);
+    --glow:          0 0 0 1px rgba(13,148,136,.12), 0 16px 36px -15px rgba(13,148,136,.15);
+    --radial-1:      rgba(13,148,136,.08);
+    --radial-2:      rgba(4,120,87,.06);
+    --header-bg:     rgba(255, 255, 255, 0.96);
   }
+
+  h1, h2, h3, h4 { font-family: var(--font-heading); }
+  code, pre, .mono { font-family: var(--font-code); }
 
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
