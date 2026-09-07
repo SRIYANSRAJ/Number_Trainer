@@ -5,22 +5,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Inter-Base Logic | Number Converter</title>
-  <meta name="theme-color" content="#0f1412" id="themeMetaColor">
+  <meta name="theme-color" content="#07090e" id="themeMetaColor">
 <script>
   (function () {
     const savedTheme = localStorage.getItem('theme') || localStorage.getItem('numSysTheme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
     const meta = document.getElementById('themeMetaColor');
-    if (meta) meta.setAttribute('content', savedTheme === 'light' ? '#f4f6f5' : '#0f1412');
+    if (meta) meta.setAttribute('content', savedTheme === 'light' ? '#f5f8fa' : '#07090e');
   })();
 </script>
 <!-- Unified Coding Logo Favicon -->
 <link rel="icon" type="image/svg+xml"
-  href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%232dd4bf'/%3E%3Cstop offset='100%25' stop-color='%23059669'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='24' fill='url(%23g)'/%3E%3Cpath d='M30 32 L16 50 L30 68 M70 32 L84 50 L70 68 M56 22 L44 78' stroke='%230f1412' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
-<!-- Google Fonts: Playfair Display, Plus Jakarta Sans, Fira Code -->
+  href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23a3e635'/%3E%3Cstop offset='50%25' stop-color='%23f97316'/%3E%3Cstop offset='100%25' stop-color='%23ff4d6d'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='24' fill='url(%23g)'/%3E%3Cpath d='M30 32 L16 50 L30 68 M70 32 L84 50 L70 68 M56 22 L44 78' stroke='%2307090e' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+<!-- Google Fonts: Fredoka, Righteous, Space Grotesk, Plus Jakarta Sans, JetBrains Mono -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700;800&family=Righteous&family=Fira+Code:wght@400;600;700&family=JetBrains+Mono:wght@400;600;700;800&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <!-- Firebase SDK & Route Protection Script -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -28,27 +28,30 @@
 <script src="script.js"></script>
 <style>
   :root {
-    --font-heading: 'Playfair Display', Georgia, serif;
+    --font-playful: 'Righteous', 'Fredoka', 'Outfit', cursive, sans-serif;
+    --font-heading: 'Righteous', 'Space Grotesk', 'Outfit', system-ui, -apple-system, sans-serif;
     --font-body:    'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    --font-code:    'Fira Code', 'JetBrains Mono', monospace;
+    --font-code:    'JetBrains Mono', 'Fira Code', monospace;
 
-    --bg: #0f1412;
-    --bg-soft: #171f1c;
-    --card: #171f1c;
-    --primary: #2dd4bf;
-    --primary-light: #5eead4;
-    --primary-dark: #059669;
-    --success: #34d399;
-    --error: #f87171;
-    --text-dark: #e8ebe9;
-    --text-muted: #83968e;
-    --glass: rgba(23, 31, 28, 0.94);
-    --border: #283631;
-    --shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 0 25px rgba(45, 212, 191, 0.12);
-    --card-item-bg: #171f1c;
-    --card-item-border: #283631;
-    --item-text: #e8ebe9;
-    --item-subtext: #83968e;
+    --bg: #060b19;
+    --bg-soft: #0b152d;
+    --card: rgba(11, 21, 45, 0.94);
+    --primary: #00f2fe;
+    --primary-light: #67e8f9;
+    --primary-dark: #0284c7;
+    --accent-red: #ff4d6d;
+    --accent-orange: #38bdf8;
+    --success: #00f2fe;
+    --error: #ff4d6d;
+    --text-dark: #f8fafc;
+    --text-muted: #94a3b8;
+    --glass: rgba(11, 21, 45, 0.94);
+    --border: #1a2f58;
+    --shadow: 0 20px 50px rgba(2, 6, 23, 0.8), 0 0 25px rgba(0, 242, 254, 0.12);
+    --card-item-bg: #0b152d;
+    --card-item-border: #1a2f58;
+    --item-text: #f8fafc;
+    --item-subtext: #94a3b8;
   }
 
   *{ box-sizing:border-box; font-family:var(--font-body); }
@@ -183,189 +186,191 @@
 
   /* Light Theme Overrides */
   [data-theme="light"] {
-    --bg: #f4f6f5;
-    --bg-soft: #eef2ef;
+    --bg: #f5f8fa;
+    --bg-soft: #edf2f7;
     --card: #ffffff;
-    --primary: #0d9488;
-    --primary-light: #99f6e4;
-    --primary-dark: #047857;
-    --text-dark: #141d19;
-    --text-muted: #586c64;
+    --primary: #65a30d;
+    --primary-light: #bef264;
+    --primary-dark: #3f6212;
+    --accent-red: #f43f5e;
+    --accent-orange: #ea580c;
+    --text-dark: #0f172a;
+    --text-muted: #64748b;
     --glass: rgba(255, 255, 255, 0.96);
-    --border: #d0d9d4;
-    --shadow: 0 10px 30px rgba(20, 29, 25, 0.08);
-    --card-item-bg: #eef2ef;
-    --card-item-border: #d0d9d4;
-    --item-text: #141d19;
-    --item-subtext: #586c64;
+    --border: #e2e8f0;
+    --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    --card-item-bg: #f8fafc;
+    --card-item-border: #e2e8f0;
+    --item-text: #0f172a;
+    --item-subtext: #64748b;
   }
 
   [data-theme="light"] body {
-    background: #f4f6f5;
-    color: #141d19;
+    background: #f5f8fa;
+    color: #0f172a;
   }
 
   [data-theme="light"] body::before {
     background:
-      radial-gradient(circle at 15% 15%, rgba(13, 148, 136, 0.08) 0%, transparent 45%),
-      radial-gradient(circle at 85% 20%, rgba(4, 120, 87, 0.06) 0%, transparent 40%),
-      radial-gradient(circle at 80% 85%, rgba(13, 148, 136, 0.06) 0%, transparent 45%),
-      radial-gradient(circle at 20% 80%, rgba(4, 120, 87, 0.06) 0%, transparent 45%),
-      #f4f6f5;
+      radial-gradient(circle at 15% 15%, rgba(101, 163, 13, 0.08) 0%, transparent 45%),
+      radial-gradient(circle at 85% 20%, rgba(234, 88, 12, 0.06) 0%, transparent 40%),
+      radial-gradient(circle at 80% 85%, rgba(244, 63, 94, 0.06) 0%, transparent 45%),
+      radial-gradient(circle at 20% 80%, rgba(101, 163, 13, 0.07) 0%, transparent 45%),
+      #f5f8fa;
   }
 
   [data-theme="light"] .app-container {
     background: #ffffff;
-    border-color: #d0d9d4;
-    box-shadow: 0 10px 30px rgba(20, 29, 25, 0.06);
+    border-color: #e2e8f0;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
   }
 
   [data-theme="light"] header h1 {
-    color: #141d19;
+    color: #0f172a;
   }
 
   [data-theme="light"] header p {
-    color: #586c64;
+    color: #64748b;
   }
 
   [data-theme="light"] .display-card {
     background: #ffffff;
-    border-color: #d0d9d4;
-    box-shadow: 0 4px 16px rgba(20, 29, 25, 0.04);
+    border-color: #e2e8f0;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
   }
 
   [data-theme="light"] .big-number {
-    color: #141d19;
+    color: #0f172a;
   }
 
   [data-theme="light"] .control-panel {
-    background: #eef2ef;
-    border-color: #d0d9d4;
+    background: #f8fafc;
+    border-color: #e2e8f0;
   }
 
   [data-theme="light"] select {
     background: #ffffff;
-    color: #141d19;
-    border-color: #d0d9d4;
+    color: #0f172a;
+    border-color: #e2e8f0;
   }
 
   [data-theme="light"] #answerInput {
     background: #ffffff;
-    color: #141d19;
-    border-color: #d0d9d4;
+    color: #0f172a;
+    border-color: #e2e8f0;
   }
 
   [data-theme="light"] .time-greeting-quiz,
   [data-theme="light"] .theme-toggle-btn {
     background: #ffffff;
-    border-color: #d0d9d4;
-    color: #141d19;
-    box-shadow: 0 4px 14px rgba(20, 29, 25, 0.06);
+    border-color: #e2e8f0;
+    color: #0f172a;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
   }
 
   [data-theme="light"] .time-greeting-quiz .greet-name {
-    color: #0d9488;
+    color: #65a30d;
   }
 
   [data-theme="light"] .lb-overlay {
-    background: rgba(20, 29, 25, 0.45);
+    background: rgba(15, 23, 42, 0.45);
   }
 
   [data-theme="light"] .lb-modal {
     background: #ffffff;
-    border-color: #d0d9d4;
-    color: #141d19;
-    box-shadow: 0 20px 50px rgba(20, 29, 25, 0.12);
+    border-color: #e2e8f0;
+    color: #0f172a;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
   }
 
   [data-theme="light"] .lb-modal h2 {
-    color: #141d19;
+    color: #0f172a;
   }
 
   [data-theme="light"] .lb-sub {
-    color: #586c64;
+    color: #64748b;
   }
 
   [data-theme="light"] .lb-close {
-    background: #eef2ef;
-    color: #586c64;
-    border: 1px solid #d0d9d4;
+    background: #f1f5f9;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
   }
 
   [data-theme="light"] .lb-close:hover {
-    background: #dc2626;
+    background: #f43f5e;
     color: #ffffff;
-    border-color: #dc2626;
+    border-color: #f43f5e;
   }
 
   [data-theme="light"] .btn-reveal {
-    background: #eef2ef;
-    color: #141d19;
-    border: 1px solid #d0d9d4;
+    background: #f8fafc;
+    color: #0f172a;
+    border: 1px solid #e2e8f0;
   }
 
   [data-theme="light"] #btn-next {
     background: #ffffff;
     border: 2px solid var(--primary);
     color: var(--primary);
-    box-shadow: 0 4px 14px rgba(13, 148, 136, 0.12);
+    box-shadow: 0 4px 14px rgba(101, 163, 13, 0.12);
   }
 
   [data-theme="light"] .badge-from {
-    background: rgba(13, 148, 136, 0.12);
-    color: #047857;
-    border-color: rgba(13, 148, 136, 0.28);
+    background: rgba(101, 163, 13, 0.12);
+    color: #4d7c0f;
+    border-color: rgba(101, 163, 13, 0.28);
   }
 
   [data-theme="light"] .badge-to {
-    background: rgba(217, 119, 6, 0.12);
-    color: #b45309;
-    border-color: rgba(217, 119, 6, 0.25);
+    background: rgba(234, 88, 12, 0.12);
+    color: #c2410c;
+    border-color: rgba(234, 88, 12, 0.25);
   }
 
   [data-theme="light"] .stats {
-    border-top-color: #d0d9d4;
-    color: #586c64;
+    border-top-color: #e2e8f0;
+    color: #64748b;
   }
 
   [data-theme="light"] .quiz-pts-badge {
-    background: linear-gradient(135deg, rgba(251, 191, 36, 0.18), rgba(245, 158, 11, 0.24));
-    border-color: rgba(217, 119, 6, 0.35);
-    color: #b45309;
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.14), rgba(245, 158, 11, 0.20));
+    border-color: rgba(234, 88, 12, 0.35);
+    color: #ea580c;
   }
 
   [data-theme="light"] .nav-btn-back {
-    color: #047857;
+    color: #4d7c0f;
     background: #ffffff;
-    border-color: #d0d9d4;
+    border-color: #e2e8f0;
   }
   [data-theme="light"] .nav-btn-back:hover {
-    background: #eef2ef;
-    color: #0d9488;
-    border-color: #0d9488;
-    box-shadow: 0 4px 14px rgba(13, 148, 136, 0.18);
+    background: #f8fafc;
+    color: #65a30d;
+    border-color: #65a30d;
+    box-shadow: 0 4px 14px rgba(101, 163, 13, 0.18);
   }
 
   [data-theme="light"] .nav-btn-history {
     color: #0284c7;
     background: #ffffff;
-    border-color: #d0d9d4;
+    border-color: #e2e8f0;
   }
   [data-theme="light"] .nav-btn-history:hover {
-    background: #eef2ef;
+    background: #f8fafc;
     color: #0284c7;
     border-color: #0284c7;
   }
 
   [data-theme="light"] .nav-btn-logout {
-    color: #dc2626;
+    color: #f43f5e;
     background: #ffffff;
-    border-color: #d0d9d4;
+    border-color: #e2e8f0;
   }
   [data-theme="light"] .nav-btn-logout:hover {
     background: #fee2e2;
-    color: #b91c1c;
-    border-color: #dc2626;
+    color: #be123c;
+    border-color: #f43f5e;
   }
 
   [data-theme="light"] #answerInput.success,
@@ -380,10 +385,10 @@
   [data-theme="light"] #answerInput.fail,
   [data-theme="light"] #answerInput.wrong {
     background: #fee2e2 !important;
-    border-color: #dc2626 !important;
-    color: #b91c1c !important;
+    border-color: #f43f5e !important;
+    color: #be123c !important;
     font-weight: 800 !important;
-    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.28) !important;
+    box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.28) !important;
   }
 
   [data-theme="light"] .feedback.success {
@@ -394,8 +399,8 @@
 
   [data-theme="light"] .feedback.fail {
     background: #fee2e2 !important;
-    border-color: #dc2626 !important;
-    color: #b91c1c !important;
+    border-color: #f43f5e !important;
+    color: #be123c !important;
   }
 
   .quiz-action-bar {
@@ -432,45 +437,45 @@
   }
 
   .btn-check-main {
-    background: linear-gradient(135deg, #2dd4bf, #059669);
-    color: #0d1117;
+    background: linear-gradient(135deg, #a3e635, #84cc16);
+    color: #05080c;
     font-weight: 800;
-    box-shadow: 0 4px 16px rgba(45, 212, 191, 0.28);
+    box-shadow: 0 4px 16px rgba(163, 230, 53, 0.35);
   }
 
   .btn-next-main {
-    background: linear-gradient(135deg, #2dd4bf, #059669);
-    color: #0d1117;
+    background: linear-gradient(135deg, #a3e635, #84cc16);
+    color: #05080c;
     font-weight: 800;
-    box-shadow: 0 4px 16px rgba(45, 212, 191, 0.28);
+    box-shadow: 0 4px 16px rgba(163, 230, 53, 0.35);
   }
 
   .btn-ai-main {
-    background: #171f1c;
+    background: #0e141f;
     color: var(--primary);
-    border: 1.5px solid rgba(45, 212, 191, 0.35);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+    border: 1.5px solid rgba(163, 230, 53, 0.35);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
   }
 
   [data-theme="light"] .btn-check-main {
-    background: linear-gradient(135deg, #0d9488, #047857);
+    background: linear-gradient(135deg, #65a30d, #4d7c0f);
     color: #ffffff;
     font-weight: 800;
-    box-shadow: 0 4px 14px rgba(13, 148, 136, 0.25);
+    box-shadow: 0 4px 14px rgba(101, 163, 13, 0.25);
   }
 
   [data-theme="light"] .btn-next-main {
-    background: linear-gradient(135deg, #0d9488, #047857);
+    background: linear-gradient(135deg, #65a30d, #4d7c0f);
     color: #ffffff;
     font-weight: 800;
-    box-shadow: 0 4px 14px rgba(13, 148, 136, 0.25);
+    box-shadow: 0 4px 14px rgba(101, 163, 13, 0.25);
   }
 
   [data-theme="light"] .btn-ai-main {
     background: #ffffff;
-    color: #047857;
-    border: 1.5px solid #0d9488;
-    box-shadow: 0 2px 8px rgba(13, 148, 136, 0.12);
+    color: #3f6212;
+    border: 1.5px solid #65a30d;
+    box-shadow: 0 2px 8px rgba(101, 163, 13, 0.12);
   }
 
     @keyframes greetSlide {
@@ -1143,12 +1148,31 @@
       }
     }
   </style>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@700&display=swap"
-    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
+
+  <!-- DYNAMIC FLOATING SQUARES & TECH SYMBOLS BACKGROUND -->
+  <div class="cyber-floating-bg" aria-hidden="true">
+    <div class="bg-sq sq-1 sq-checker"></div>
+    <div class="bg-sq sq-2 dashed sq-blue"></div>
+    <div class="bg-sq sq-3 sq-ice"></div>
+    <div class="bg-sq sq-4"></div>
+    <div class="bg-sq sq-5 dashed"></div>
+    <div class="bg-sq sq-6 sq-blue"></div>
+    <div class="bg-sq sq-7 sq-ice"></div>
+    <div class="bg-sq sq-8 dashed sq-checker"></div>
+    
+    <div class="bg-sym sym-1">0101</div>
+    <div class="bg-sym sym-2">0xFF</div>
+    <div class="bg-sym sym-3">■</div>
+    <div class="bg-sym sym-4">◆</div>
+    <div class="bg-sym sym-5">▲</div>
+    <div class="bg-sym sym-6">{ }</div>
+    <div class="bg-sym sym-7">∑</div>
+    <div class="bg-sym sym-8">⬡</div>
+  </div>
 
   <!-- TOP-RIGHT CONTROLS (Theme Toggle + Greeting) -->
   <div class="top-right-controls">
@@ -1199,8 +1223,40 @@
     </div>
 
     <header>
-      <h1>Inter-Base Logic</h1>
-      <p>Multi-System Precision Training</p>
+      <div class="dynamic-brand-banner" style="margin-bottom:8px; padding: 6px 0;">
+        <div class="brand-title-group">
+          <!-- Constantly floating surrounding numbers & base markers -->
+          <span class="floating-orb-num orb-n1" title="Binary Zero">0</span>
+          <span class="floating-orb-num orb-n2" title="Hex Digit">F</span>
+          <span class="floating-orb-num orb-n3" title="Binary One">1</span>
+          <span class="floating-orb-num orb-n4" title="Octal Eight">8</span>
+          <span class="floating-orb-num orb-n5" title="Hexadecimal Prefix">0x</span>
+          <span class="floating-orb-num orb-n6" title="Binary Prefix">0b</span>
+
+          <!-- WORD 1: NUMBER -->
+          <div class="brand-word">
+            <span class="floating-char color-cyan" style="--delay: 0.0s; --rot: -4deg;" data-char="N">N</span>
+            <span class="floating-char color-blue" style="--delay: 0.25s; --rot: 3deg;" data-char="U">U</span>
+            <span class="floating-char color-ice" style="--delay: 0.5s; --rot: -5deg;" data-char="M">M</span>
+            <span class="floating-char color-cyan" style="--delay: 0.75s; --rot: 4deg;" data-char="B">B</span>
+            <span class="floating-char color-blue" style="--delay: 1.0s; --rot: -3deg;" data-char="E">E</span>
+            <span class="floating-char color-ice" style="--delay: 1.25s; --rot: 5deg;" data-char="R">R</span>
+          </div>
+
+          <!-- WORD 2: TRAINER -->
+          <div class="brand-word">
+            <span class="floating-char color-cyan" style="--delay: 0.15s; --rot: 5deg;" data-char="T">T</span>
+            <span class="floating-char color-blue" style="--delay: 0.4s; --rot: -4deg;" data-char="R">R</span>
+            <span class="floating-char color-ice" style="--delay: 0.65s; --rot: 3deg;" data-char="A">A</span>
+            <span class="floating-char color-cyan" style="--delay: 0.9s; --rot: -5deg;" data-char="I">I</span>
+            <span class="floating-char color-blue" style="--delay: 1.15s; --rot: 4deg;" data-char="N">N</span>
+            <span class="floating-char color-ice" style="--delay: 1.4s; --rot: -3deg;" data-char="E">E</span>
+            <span class="floating-char color-cyan" style="--delay: 1.65s; --rot: 4deg;" data-char="R">R</span>
+          </div>
+        </div>
+      </div>
+      <h1>Inter-Base Logic Quiz</h1>
+      <p>Multi-System Precision Base Conversions</p>
       <!-- Digital Points badge -->
       <div class="quiz-pts-badge" id="quizPtsBadge" title="Your total Digital Points">
         <!-- Shiny Gold Star Coin SVG -->

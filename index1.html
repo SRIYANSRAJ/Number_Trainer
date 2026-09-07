@@ -5,23 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Number Base Arithmetic Trainer</title>
 <meta name="color-scheme" content="dark light">
-<meta name="theme-color" content="#0f1412" id="themeMetaColor">
+<meta name="theme-color" content="#07090e" id="themeMetaColor">
 <script>
   (function () {
     try {
       var savedTheme = localStorage.getItem('numSysTheme') || localStorage.getItem('theme') || localStorage.getItem('numsys_theme') || 'dark';
       document.documentElement.setAttribute('data-theme', savedTheme);
       var meta = document.getElementById('themeMetaColor');
-      if (meta) meta.setAttribute('content', savedTheme === 'light' ? '#f4f6f5' : '#0f1412');
+      if (meta) meta.setAttribute('content', savedTheme === 'light' ? '#f5f8fa' : '#07090e');
     } catch(e){}
   })();
 </script>
 <!-- Unified Coding Logo Favicon -->
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%232dd4bf'/%3E%3Cstop offset='100%25' stop-color='%23059669'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='24' fill='url(%23g)'/%3E%3Cpath d='M30 32 L16 50 L30 68 M70 32 L84 50 L70 68 M56 22 L44 78' stroke='%230f1412' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
-<!-- Google Fonts: Playfair Display, Plus Jakarta Sans, Fira Code -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23a3e635'/%3E%3Cstop offset='50%25' stop-color='%23f97316'/%3E%3Cstop offset='100%25' stop-color='%23ff4d6d'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='24' fill='url(%23g)'/%3E%3Cpath d='M30 32 L16 50 L30 68 M70 32 L84 50 L70 68 M56 22 L44 78' stroke='%2307090e' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+<!-- Google Fonts: Fredoka, Righteous, Space Grotesk, Plus Jakarta Sans, JetBrains Mono -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700;800&family=Righteous&family=Fira+Code:wght@400;600;700&family=JetBrains+Mono:wght@400;600;700;800&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <!-- Firebase SDK & Route Protection Script -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -29,56 +29,107 @@
 <script src="script.js"></script>
 <style>
   /* ============================================================
-     MIDNIGHT ACADEMIC THEME SYSTEM — DESIGN TOKENS
+     FUTURISTIC COMPUTER OS & CYBER BLUE THEME SYSTEM — DESIGN TOKENS
+     Palette: Deep Navy Blue (#060b19) + Electric Blue (#2563eb) + Bright Cyan (#00f2fe) + Soft Ice Blue (#93c5fd)
      ============================================================ */
   :root{
-    --font-heading: 'Playfair Display', Georgia, serif;
+    --font-playful: 'Righteous', 'Fredoka', 'Outfit', cursive, sans-serif;
+    --font-heading: 'Righteous', 'Space Grotesk', 'Outfit', system-ui, -apple-system, sans-serif;
     --font-body:    'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    --font-code:    'Fira Code', 'JetBrains Mono', monospace;
+    --font-code:    'JetBrains Mono', 'Fira Code', monospace;
 
-    --bg:            #0f1412;
-    --bg-soft:       #171f1c;
-    --card:          #171f1c;
-    --card-hover:    #1e2925;
-    --border:        #283631;
-    --border-active: #2dd4bf;
-    --primary:       #2dd4bf;
-    --primary-hover: #14b8a6;
-    --primary-dark:  #059669;
-    --primary-bright:#2dd4bf;
-    --primary-light: #5eead4;
-    --accent-solid:  #2dd4bf;
-    --accent-hover:  #14b8a6;
-    --accent-glow:   rgba(45, 212, 191, 0.15);
-    --accent-gradient: linear-gradient(135deg, #2dd4bf, #059669);
-    --success:       #34d399;
-    --error:         #f87171;
-    --purple:        #2dd4bf;
-    --warning:       #fbbf24;
-    --muted:         #83968e;
-    --text:          #e8ebe9;
-    --btn-text:      #0d1117;
-    --shadow:        0 12px 24px rgba(0,0,0,.40);
-    --answer-filled-bg: rgba(45, 212, 191, 0.14);
-    --header-grad-a: #e8ebe9;
-    --header-grad-b: #2dd4bf;
-    --radial-1:      rgba(45, 212, 191, 0.12);
-    --radial-2:      rgba(5, 150, 105, 0.10);
+    --bg:            #060b19;
+    --bg-soft:       #0b152d;
+    --card:          rgba(11, 21, 45, 0.94);
+    --card-hover:    rgba(15, 29, 62, 0.98);
+    --border:        #1a2f58;
+    --border-active: #00f2fe;
+    --primary:       #00f2fe;
+    --primary-hover: #38bdf8;
+    --primary-dark:  #0284c7;
+    --primary-bright:#67e8f9;
+    --primary-light: #bae6fd;
+    --electric-blue: #2563eb;
+    --accent-solid:  #00f2fe;
+    --accent-hover:  #38bdf8;
+    --accent-glow:   rgba(0, 242, 254, 0.4);
+    --accent-gradient: linear-gradient(135deg, #00f2fe 0%, #2563eb 55%, #1e40af 100%);
+    --accent-gradient-warm: linear-gradient(135deg, #38bdf8, #2563eb);
+    --accent-gradient-lime: linear-gradient(135deg, #00f2fe, #38bdf8);
+    --accent-red:    #ff4d6d;
+    --accent-orange: #38bdf8;
+    --success:       #00f2fe;
+    --error:         #ff4d6d;
+    --purple:        #2563eb;
+    --warning:       #38bdf8;
+    --muted:         #94a3b8;
+    --text:          #f8fafc;
+    --btn-text:      #040814;
+    --shadow:        0 16px 36px rgba(2,6,23,.75), 0 0 25px rgba(0,242,254,.12);
+    --answer-filled-bg: rgba(0, 242, 254, 0.16);
+    --header-grad-a: #f8fafc;
+    --header-grad-b: #00f2fe;
+    --radial-1:      rgba(0, 242, 254, 0.18);
+    --radial-2:      rgba(37, 99, 235, 0.20);
 
-    /* Subtle ambient spruce mesh tokens */
-    --blob-indigo:  rgba(45, 212, 191, 0.12);
-    --blob-purple:  rgba(5, 150, 105, 0.10);
-    --blob-emerald: rgba(45, 212, 191, 0.08);
-    --blob-blue:    rgba(52, 211, 153, 0.08);
-    --blob-opacity: .85;
-    --blob-blur:    65px;
+    /* Dynamic ambient cyber mesh tokens */
+    --blob-indigo:  rgba(0, 242, 254, 0.18);
+    --blob-purple:  rgba(37, 99, 235, 0.22);
+    --blob-emerald: rgba(14, 165, 233, 0.18);
+    --blob-blue:    rgba(30, 64, 175, 0.20);
+    --blob-opacity: .95;
+    --blob-blur:    75px;
 
-    --box-size:      44px;
-    --box-gap:       6px;
-    --label-width:   34px;
-    --radius:        14px;
+    --box-size:      46px;
+    --box-gap:       7px;
+    --label-width:   36px;
+    --radius:        16px;
     --font-ui:       var(--font-body);
     --font-mono:     var(--font-code);
+  }
+
+  /* Light Theme Overrides */
+  [data-theme="light"] {
+    --bg:            #f0f6fc;
+    --bg-soft:       #e2eeff;
+    --card:          #ffffff;
+    --card-hover:    #f8fafc;
+    --border:        #cbd5e1;
+    --border-active: #0284c7;
+    --primary:       #0284c7;
+    --primary-hover: #0369a1;
+    --primary-dark:  #075985;
+    --primary-bright:#0ea5e9;
+    --primary-light: #bae6fd;
+    --electric-blue: #1d4ed8;
+    --accent-solid:  #0284c7;
+    --accent-hover:  #0369a1;
+    --accent-glow:   rgba(2, 132, 199, 0.3);
+    --accent-gradient: linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%);
+    --accent-gradient-warm: linear-gradient(135deg, #0284c7, #1d4ed8);
+    --accent-gradient-lime: linear-gradient(135deg, #0284c7, #0369a1);
+    --accent-red:    #e11d48;
+    --accent-orange: #0284c7;
+    --success:       #0284c7;
+    --error:         #e11d48;
+    --purple:        #1d4ed8;
+    --warning:       #0284c7;
+    --muted:         #64748b;
+    --text:          #0f172a;
+    --btn-text:      #ffffff;
+    --shadow:        0 14px 30px rgba(15, 23, 42, 0.08), 0 0 15px rgba(2, 132, 199, 0.08);
+    --answer-filled-bg: rgba(2, 132, 199, 0.12);
+    --header-grad-a: #0f172a;
+    --header-grad-b: #0284c7;
+    --radial-1:      rgba(2, 132, 199, 0.10);
+    --radial-2:      rgba(37, 99, 235, 0.08);
+
+    --blob-indigo:  rgba(2, 132, 199, 0.10);
+    --blob-purple:  rgba(37, 99, 235, 0.08);
+    --blob-emerald: rgba(14, 165, 233, 0.08);
+    --blob-blue:    rgba(2, 132, 199, 0.09);
+    --blob-opacity: .7;
+    --blob-blur:    60px;
   }
 
   *{ box-sizing:border-box; font-family:var(--font-body); }
@@ -86,10 +137,14 @@
   .mono, code, pre, .bit-box, .stat-chip, .digit-input { font-family: var(--font-code); }
   html,body{
     margin:0; padding:0; width:100%; min-height:100vh;
-    background:
-      radial-gradient(circle at 15% 0%, var(--radial-1), transparent 45%),
-      radial-gradient(circle at 90% 10%, var(--radial-2), transparent 40%),
-      var(--bg);
+    background-color: var(--bg);
+    background-image: 
+      linear-gradient(45deg, rgba(37, 99, 235, 0.035) 25%, transparent 25%, transparent 75%, rgba(37, 99, 235, 0.035) 75%),
+      linear-gradient(45deg, rgba(37, 99, 235, 0.035) 25%, transparent 25%, transparent 75%, rgba(37, 99, 235, 0.035) 75%),
+      linear-gradient(to right, rgba(0, 242, 254, 0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(0, 242, 254, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px, 40px 40px, 20px 20px, 20px 20px;
+    background-position: 0 0, 20px 20px, 0 0, 0 0;
     color:var(--text);
     font-family:var(--font-ui);
     overflow-x:hidden;
@@ -646,47 +701,49 @@
     color: #fff;
   }
 
-  /* Light Theme Overrides (Scholarly Academic Clean Palette) */
+  /* Light Theme Overrides (Clean Titanium Tech & Vibrant Accents) */
   [data-theme="light"] {
-    --bg:            #f4f6f5;
-    --bg-soft:       #eef2ef;
+    --bg:            #f5f8fa;
+    --bg-soft:       #edf2f7;
     --card:          #ffffff;
-    --card-hover:    #f8faf9;
-    --border:        #d0d9d4;
-    --border-active: #0d9488;
-    --primary:       #0d9488;
-    --primary-hover: #0f766e;
-    --primary-dark:  #047857;
-    --primary-bright:#14b8a6;
-    --primary-light: #99f6e4;
-    --accent-solid:  #0d9488;
-    --accent-hover:  #0f766e;
-    --accent-glow:   rgba(13, 148, 136, 0.15);
-    --accent-gradient: linear-gradient(135deg, #0d9488, #047857);
-    --success:       #059669;
-    --error:         #dc2626;
-    --purple:        #0d9488;
-    --warning:       #d97706;
-    --muted:         #586c64;
-    --text:          #141d19;
+    --card-hover:    #f8fafc;
+    --border:        #e2e8f0;
+    --border-active: #65a30d;
+    --primary:       #65a30d;
+    --primary-hover: #4d7c0f;
+    --primary-dark:  #3f6212;
+    --primary-bright:#84cc16;
+    --primary-light: #bef264;
+    --accent-solid:  #65a30d;
+    --accent-hover:  #4d7c0f;
+    --accent-glow:   rgba(101, 163, 13, 0.22);
+    --accent-gradient: linear-gradient(135deg, #65a30d, #ea580c);
+    --accent-red:    #f43f5e;
+    --accent-orange: #ea580c;
+    --success:       #16a34a;
+    --error:         #f43f5e;
+    --purple:        #65a30d;
+    --warning:       #ea580c;
+    --muted:         #64748b;
+    --text:          #0f172a;
     --btn-text:      #ffffff;
-    --shadow:        0 10px 26px rgba(20,29,25,.06);
-    --answer-filled-bg: #e0f2fe;
-    --header-grad-a: #141d19;
-    --header-grad-b: #0d9488;
-    --radial-1:      rgba(13,148,136,.08);
-    --radial-2:      rgba(4,120,87,.06);
+    --shadow:        0 10px 26px rgba(15,23,42,.06);
+    --answer-filled-bg: #f7fee7;
+    --header-grad-a: #0f172a;
+    --header-grad-b: #65a30d;
+    --radial-1:      rgba(101,163,13,.08);
+    --radial-2:      rgba(234,88,12,.06);
 
-    --blob-indigo:  rgba(13,148,136,.08);
-    --blob-purple:  rgba(4,120,87,.06);
-    --blob-emerald: rgba(13,148,136,.06);
-    --blob-blue:    rgba(5,150,105,.08);
+    --blob-indigo:  rgba(101,163,13,.08);
+    --blob-purple:  rgba(234,88,12,.06);
+    --blob-emerald: rgba(244,63,94,.06);
+    --blob-blue:    rgba(101,163,13,.07);
     --blob-opacity: .75;
   }
 
   [data-theme="light"] body {
-    background: #f4f6f5;
-    color: #141d19;
+    background: #f5f8fa;
+    color: #0f172a;
   }
 
   [data-theme="light"] .dashboard-panel,
@@ -697,70 +754,70 @@
   [data-theme="light"] .stats-panel,
   [data-theme="light"] .lb-modal {
     background: #ffffff;
-    border-color: #d0d9d4;
-    color: #141d19;
-    box-shadow: 0 10px 30px rgba(20, 29, 25, 0.06);
+    border-color: #e2e8f0;
+    color: #0f172a;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
   }
 
   [data-theme="light"] .dash-card {
-    background: #eef2ef;
-    border-color: #d0d9d4;
+    background: #f8fafc;
+    border-color: #e2e8f0;
   }
 
   [data-theme="light"] .mode-card {
-    background: #eef2ef;
-    border-color: #d0d9d4;
+    background: #f8fafc;
+    border-color: #e2e8f0;
   }
   [data-theme="light"] .mode-card:hover {
-    background: #f8faf9;
-    border-color: #0d9488;
-    box-shadow: 0 10px 24px rgba(13, 148, 136, 0.15);
+    background: #ffffff;
+    border-color: #65a30d;
+    box-shadow: 0 10px 24px rgba(101, 163, 13, 0.15);
   }
 
   [data-theme="light"] .time-greeting,
   [data-theme="light"] .theme-toggle-btn {
     background: #ffffff;
-    border-color: #d0d9d4;
-    color: #141d19;
-    box-shadow: 0 4px 16px rgba(20, 29, 25, 0.06);
+    border-color: #e2e8f0;
+    color: #0f172a;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
   }
 
   [data-theme="light"] .time-greeting .greet-name {
-    color: #0d9488;
+    color: #65a30d;
   }
 
   [data-theme="light"] .lb-overlay {
-    background: rgba(20, 29, 25, 0.45);
+    background: rgba(15, 23, 42, 0.5);
   }
 
   [data-theme="light"] select,
   [data-theme="light"] input[type="text"],
   [data-theme="light"] input[type="number"] {
     background: #ffffff;
-    color: #141d19;
-    border-color: #d0d9d4;
+    color: #0f172a;
+    border-color: #e2e8f0;
   }
 
   [data-theme="light"] .bit-box {
     background: #ffffff;
-    border-color: #d0d9d4;
-    color: #141d19;
+    border-color: #e2e8f0;
+    color: #0f172a;
   }
 
   [data-theme="light"] .bit-box.one {
-    background: #eef2ef;
-    border-color: #99f6e4;
-    color: #0f766e;
+    background: #f7fee7;
+    border-color: #bef264;
+    color: #4d7c0f;
   }
 
   [data-theme="light"] .answer-box.correct,
   [data-theme="light"] .bit-box.correct,
   [data-theme="light"] .single-answer-input.correct {
-    background: #d1fae5 !important;
-    border-color: #059669 !important;
-    color: #047857 !important;
+    background: #dcfce7 !important;
+    border-color: #16a34a !important;
+    color: #15803d !important;
     font-weight: 800 !important;
-    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.25) !important;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.25) !important;
   }
 
   [data-theme="light"] .answer-box.wrong,
@@ -768,30 +825,30 @@
   [data-theme="light"] .bit-box.incorrect,
   [data-theme="light"] .single-answer-input.wrong {
     background: #fee2e2 !important;
-    border-color: #dc2626 !important;
-    color: #b91c1c !important;
+    border-color: #f43f5e !important;
+    color: #be123c !important;
     font-weight: 800 !important;
-    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.25) !important;
+    box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.25) !important;
   }
 
   [data-theme="light"] .btn.primary {
-    background: linear-gradient(135deg, #0d9488, #047857);
+    background: linear-gradient(135deg, #65a30d, #4d7c0f);
     color: #ffffff;
     font-weight: 800;
-    box-shadow: 0 4px 14px rgba(13, 148, 136, 0.25);
+    box-shadow: 0 4px 14px rgba(101, 163, 13, 0.25);
   }
   [data-theme="light"] .btn.primary:hover {
-    box-shadow: 0 6px 20px rgba(13, 148, 136, 0.35);
+    box-shadow: 0 6px 20px rgba(101, 163, 13, 0.35);
   }
 
   [data-theme="light"] .btn.success {
-    background: linear-gradient(135deg, #059669, #047857);
+    background: linear-gradient(135deg, #16a34a, #15803d);
     color: #ffffff;
     font-weight: 800;
-    box-shadow: 0 4px 14px rgba(5, 150, 105, 0.25);
+    box-shadow: 0 4px 14px rgba(22, 163, 74, 0.25);
   }
   [data-theme="light"] .btn.success:hover {
-    box-shadow: 0 6px 20px rgba(5, 150, 105, 0.35);
+    box-shadow: 0 6px 20px rgba(22, 163, 74, 0.35);
   }
 
   [data-theme="light"] .btn.ghost {
@@ -1328,8 +1385,30 @@
 
   .visually-hidden{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
 </style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+<!-- DYNAMIC FLOATING SQUARES & TECH SYMBOLS BACKGROUND -->
+<div class="cyber-floating-bg" aria-hidden="true">
+  <div class="bg-sq sq-1 sq-checker"></div>
+  <div class="bg-sq sq-2 dashed sq-blue"></div>
+  <div class="bg-sq sq-3 sq-ice"></div>
+  <div class="bg-sq sq-4"></div>
+  <div class="bg-sq sq-5 dashed"></div>
+  <div class="bg-sq sq-6 sq-blue"></div>
+  <div class="bg-sq sq-7 sq-ice"></div>
+  <div class="bg-sq sq-8 dashed sq-checker"></div>
+  
+  <div class="bg-sym sym-1">0101</div>
+  <div class="bg-sym sym-2">0xFF</div>
+  <div class="bg-sym sym-3">■</div>
+  <div class="bg-sym sym-4">◆</div>
+  <div class="bg-sym sym-5">▲</div>
+  <div class="bg-sym sym-6">{ }</div>
+  <div class="bg-sym sym-7">∑</div>
+  <div class="bg-sym sym-8">⬡</div>
+</div>
 
 <!-- LEADERBOARD MODAL -->
 <div class="lb-overlay" id="lbOverlay">
@@ -1379,10 +1458,42 @@
       </div>
     </div>
 
+    <!-- DYNAMIC FLOATING "NUMBER TRAINER" BRAND HEADER -->
     <div class="home-header">
-      <h1>Number Base Arithmetic Trainer</h1>
-      <p>Practice binary, octal &amp; hexadecimal arithmetic — one digit at a time.</p>
-      <div style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap; margin-top:12px;">
+      <div class="dynamic-brand-banner" style="margin-bottom:8px; padding: 10px 0 6px 0;">
+        <div class="brand-title-group">
+          <!-- Constantly floating surrounding numbers & base markers -->
+          <span class="floating-orb-num orb-n1" title="Binary Zero">0</span>
+          <span class="floating-orb-num orb-n2" title="Hex Digit">F</span>
+          <span class="floating-orb-num orb-n3" title="Binary One">1</span>
+          <span class="floating-orb-num orb-n4" title="Octal Eight">8</span>
+          <span class="floating-orb-num orb-n5" title="Hexadecimal Prefix">0x</span>
+          <span class="floating-orb-num orb-n6" title="Binary Prefix">0b</span>
+
+          <!-- WORD 1: NUMBER -->
+          <div class="brand-word">
+            <span class="floating-char color-cyan" style="--delay: 0.0s; --rot: -4deg;" data-char="N">N</span>
+            <span class="floating-char color-blue" style="--delay: 0.25s; --rot: 3deg;" data-char="U">U</span>
+            <span class="floating-char color-ice" style="--delay: 0.5s; --rot: -5deg;" data-char="M">M</span>
+            <span class="floating-char color-cyan" style="--delay: 0.75s; --rot: 4deg;" data-char="B">B</span>
+            <span class="floating-char color-blue" style="--delay: 1.0s; --rot: -3deg;" data-char="E">E</span>
+            <span class="floating-char color-ice" style="--delay: 1.25s; --rot: 5deg;" data-char="R">R</span>
+          </div>
+
+          <!-- WORD 2: TRAINER -->
+          <div class="brand-word">
+            <span class="floating-char color-cyan" style="--delay: 0.15s; --rot: 5deg;" data-char="T">T</span>
+            <span class="floating-char color-blue" style="--delay: 0.4s; --rot: -4deg;" data-char="R">R</span>
+            <span class="floating-char color-ice" style="--delay: 0.65s; --rot: 3deg;" data-char="A">A</span>
+            <span class="floating-char color-cyan" style="--delay: 0.9s; --rot: -5deg;" data-char="I">I</span>
+            <span class="floating-char color-blue" style="--delay: 1.15s; --rot: 4deg;" data-char="N">N</span>
+            <span class="floating-char color-ice" style="--delay: 1.4s; --rot: -3deg;" data-char="E">E</span>
+            <span class="floating-char color-cyan" style="--delay: 1.65s; --rot: 4deg;" data-char="R">R</span>
+          </div>
+        </div>
+      </div>
+      <p style="margin-top:2px; font-size:15px; color:var(--muted); font-weight:500;">Practice binary, octal &amp; hexadecimal arithmetic — one digit at a time.</p>
+      <div style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap; margin-top:14px;">
         <a class="nav-switch-link" href="number-system-quiz.html">🔄 Switch to Conversion Quiz</a>
         <a class="nav-switch-link" href="analytics.html">📊 Analytics</a>
         <a class="nav-switch-link" href="about.html">📖 About &amp; Docs</a>

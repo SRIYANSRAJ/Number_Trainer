@@ -30,19 +30,19 @@
   <meta name="twitter:description" content="Convert Binary, Decimal, Octal and Hexadecimal numbers instantly. Crafted with Engineering Excellence by Team KITT.">
   <meta name="twitter:image" content="https://sriyansraj.github.io/Number_Trainer/preview.png">
 
-  <meta name="theme-color" content="#0f1412" id="themeMetaColor">
+  <meta name="theme-color" content="#07090e" id="themeMetaColor">
   <script>
     (function () {
       const savedTheme = localStorage.getItem('theme') || localStorage.getItem('numSysTheme') || 'dark';
       document.documentElement.setAttribute('data-theme', savedTheme);
       const meta = document.getElementById('themeMetaColor');
-      if (meta) meta.setAttribute('content', savedTheme === 'light' ? '#f4f6f5' : '#0f1412');
+      if (meta) meta.setAttribute('content', savedTheme === 'light' ? '#f5f8fa' : '#07090e');
     })();
   </script>
 
-  <!-- Favicon -->
+  <!-- Favicon with futuristic cyber blue-cyan gradient -->
   <link rel="icon" type="image/svg+xml"
-    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%232dd4bf'/%3E%3Cstop offset='100%25' stop-color='%23059669'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='24' fill='url(%23g)'/%3E%3Cpath d='M30 32 L16 50 L30 68 M70 32 L84 50 L70 68 M56 22 L44 78' stroke='%230f1412' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%2300f2fe'/%3E%3Cstop offset='50%25' stop-color='%232563eb'/%3E%3Cstop offset='100%25' stop-color='%231e40af'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='24' fill='url(%23g)'/%3E%3Cpath d='M30 32 L16 50 L30 68 M70 32 L84 50 L70 68 M56 22 L44 78' stroke='%23060b19' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
 
   <link rel="stylesheet" href="style.css">
  </head>
@@ -50,6 +50,27 @@
 
 
 <body>
+
+  <!-- DYNAMIC FLOATING SQUARES & TECH SYMBOLS -->
+  <div class="cyber-floating-bg" aria-hidden="true">
+    <div class="bg-sq sq-1 sq-checker"></div>
+    <div class="bg-sq sq-2 dashed sq-blue"></div>
+    <div class="bg-sq sq-3 sq-ice"></div>
+    <div class="bg-sq sq-4"></div>
+    <div class="bg-sq sq-5 dashed"></div>
+    <div class="bg-sq sq-6 sq-blue"></div>
+    <div class="bg-sq sq-7 sq-ice"></div>
+    <div class="bg-sq sq-8 dashed sq-checker"></div>
+    
+    <div class="bg-sym sym-1">0101</div>
+    <div class="bg-sym sym-2">0xFF</div>
+    <div class="bg-sym sym-3">■</div>
+    <div class="bg-sym sym-4">◆</div>
+    <div class="bg-sym sym-5">▲</div>
+    <div class="bg-sym sym-6">{ }</div>
+    <div class="bg-sym sym-7">∑</div>
+    <div class="bg-sym sym-8">⬡</div>
+  </div>
 
   <!-- TOP-RIGHT CONTROLS (Theme Toggle + Greeting) -->
   <div class="top-right-controls">
@@ -60,6 +81,43 @@
     <div class="time-greeting" id="timeGreeting">
       <span class="greet-emoji" id="greetEmoji">👋</span>
       <span class="greet-text" id="greetText">Welcome!</span>
+    </div>
+  </div>
+
+  <!-- DYNAMIC FLOATING "NUMBER TRAINER" BRAND HEADER -->
+  <div class="dynamic-brand-banner">
+    <div class="brand-title-group">
+      <!-- Constantly floating surrounding numbers & base markers -->
+      <span class="floating-orb-num orb-n1" title="Binary Zero">0</span>
+      <span class="floating-orb-num orb-n2" title="Hex Digit">F</span>
+      <span class="floating-orb-num orb-n3" title="Binary One">1</span>
+      <span class="floating-orb-num orb-n4" title="Octal Eight">8</span>
+      <span class="floating-orb-num orb-n5" title="Hexadecimal Prefix">0x</span>
+      <span class="floating-orb-num orb-n6" title="Binary Prefix">0b</span>
+
+      <!-- WORD 1: NUMBER -->
+      <div class="brand-word">
+        <span class="floating-char color-cyan" style="--delay: 0.0s; --rot: -4deg;" data-char="N">N</span>
+        <span class="floating-char color-blue" style="--delay: 0.25s; --rot: 3deg;" data-char="U">U</span>
+        <span class="floating-char color-ice" style="--delay: 0.5s; --rot: -5deg;" data-char="M">M</span>
+        <span class="floating-char color-cyan" style="--delay: 0.75s; --rot: 4deg;" data-char="B">B</span>
+        <span class="floating-char color-blue" style="--delay: 1.0s; --rot: -3deg;" data-char="E">E</span>
+        <span class="floating-char color-ice" style="--delay: 1.25s; --rot: 5deg;" data-char="R">R</span>
+      </div>
+
+      <!-- WORD 2: TRAINER -->
+      <div class="brand-word">
+        <span class="floating-char color-cyan" style="--delay: 0.15s; --rot: 5deg;" data-char="T">T</span>
+        <span class="floating-char color-blue" style="--delay: 0.4s; --rot: -4deg;" data-char="R">R</span>
+        <span class="floating-char color-ice" style="--delay: 0.65s; --rot: 3deg;" data-char="A">A</span>
+        <span class="floating-char color-cyan" style="--delay: 0.9s; --rot: -5deg;" data-char="I">I</span>
+        <span class="floating-char color-blue" style="--delay: 1.15s; --rot: 4deg;" data-char="N">N</span>
+        <span class="floating-char color-ice" style="--delay: 1.4s; --rot: -3deg;" data-char="E">E</span>
+        <span class="floating-char color-cyan" style="--delay: 1.65s; --rot: 4deg;" data-char="R">R</span>
+      </div>
+    </div>
+    <div class="brand-sub-badge">
+      <span>⚡ Interactive Base Arithmetic &amp; Inter-Base Logic Suite</span>
     </div>
   </div>
 
