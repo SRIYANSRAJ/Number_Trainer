@@ -441,9 +441,9 @@ body::after {
   box-shadow: var(--shadow);
   position: relative;
   overflow: hidden;
-  width: 880px;
+  width: 900px;
   max-width: 100%;
-  min-height: 570px;
+  min-height: 610px;
   transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
@@ -686,8 +686,9 @@ body::after {
 
 /* Specific Sign-Up Form Font & Spaciousness Enhancement */
 .form-container.sign-up form {
-  padding: 34px 44px;
+  padding: 36px 44px;
   font-family: 'Space Grotesk', 'Plus Jakarta Sans', system-ui, sans-serif;
+  gap: 0;
 }
 
 .form-container.sign-up h1 {
@@ -695,7 +696,7 @@ body::after {
   font-size: 30px;
   font-weight: 800;
   color: #ffffff;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
   letter-spacing: -0.02em;
 }
 
@@ -704,7 +705,7 @@ body::after {
 }
 
 .form-container.sign-up .social-icons {
-  margin: 0 0 16px 0;
+  margin: 0 0 18px 0;
   width: 100%;
 }
 
@@ -720,7 +721,7 @@ body::after {
 }
 
 .form-container.sign-up .or-divider {
-  margin: 16px 0 16px;
+  margin: 16px 0 20px 0;
   width: 100%;
   max-width: 320px;
 }
@@ -737,11 +738,13 @@ body::after {
   font-size: 14.5px;
   font-weight: 500;
   padding: 13px 18px;
-  margin: 7px 0;
+  margin: 0 0 16px 0;
   border-radius: 12px;
   width: 100%;
   max-width: 320px;
   letter-spacing: 0.01em;
+  height: 48px;
+  box-sizing: border-box;
 }
 
 .form-container.sign-up button[type="submit"] {
@@ -750,7 +753,7 @@ body::after {
   font-weight: 800;
   letter-spacing: 0.03em;
   padding: 14px 34px;
-  margin-top: 20px;
+  margin-top: 16px;
   width: 100%;
   max-width: 320px;
   border-radius: 12px;
@@ -763,13 +766,15 @@ body::after {
   background: var(--input-bg);
   border: 1px solid var(--input-border);
   backdrop-filter: blur(10px);
-  margin: 7px 0;
+  margin: 0 0 16px 0;
   padding: 13px 18px;
   font-family: 'Space Grotesk', var(--font-body);
   font-size: 14.5px;
   border-radius: var(--radius-input);
   width: 100%;
   max-width: 320px;
+  height: 48px;
+  box-sizing: border-box;
   outline: none;
   color: var(--text-main);
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
@@ -875,33 +880,48 @@ body::after {
   left: 0;
   width: 50%;
   z-index: 2;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55), opacity 0.35s ease, visibility 0.35s ease;
 }
 
 .container.active .sign-in {
   transform: translateX(100%);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .sign-up {
   left: 0;
   width: 50%;
   opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
   z-index: 1;
+  transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55), opacity 0.35s ease, visibility 0.35s ease;
 }
 
 .container.active .sign-up {
   transform: translateX(100%);
   opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
   z-index: 5;
-  animation: move 0.6s;
+  animation: moveSignUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes move {
+@keyframes moveSignUp {
   0%, 49.99% {
     opacity: 0;
+    visibility: hidden;
     z-index: 1;
   }
   50%, 100% {
     opacity: 1;
+    visibility: visible;
     z-index: 5;
   }
 }
@@ -1071,11 +1091,44 @@ body::after {
 }
 
 /* ======================================================================
+   MOBILE AUTH SWITCHER (Visible on mobile/compact viewports)
+   ====================================================================== */
+.mobile-auth-switch {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+
+.mobile-switch-link {
+  background: none;
+  border: none;
+  color: var(--cyan);
+  font-family: 'Space Grotesk', inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+}
+
+.mobile-switch-link:hover {
+  color: var(--cyan-bright);
+  transform: none;
+  box-shadow: none;
+}
+
+/* ======================================================================
    RESPONSIVE DESIGN
    ====================================================================== */
 @media (max-width: 768px) {
   body {
-    padding: 12px;
+    padding: 14px;
   }
   .top-right-controls {
     top: 10px;
@@ -1090,14 +1143,58 @@ body::after {
     font-size: 12px;
   }
   .container {
-    min-height: 480px;
-    border-radius: 16px;
+    min-height: 540px;
+    border-radius: 18px;
+    width: 100%;
+    max-width: 440px;
+  }
+  .toggle-container {
+    display: none !important;
+  }
+  .form-container {
+    width: 100% !important;
+    position: absolute;
+    inset: 0;
+  }
+  .sign-in {
+    width: 100% !important;
+    transform: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    display: block !important;
+  }
+  .container.active .sign-in {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    transform: none !important;
+  }
+  .sign-up {
+    display: none !important;
+    width: 100% !important;
+    transform: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+  .container.active .sign-up {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    transform: none !important;
+    width: 100% !important;
   }
   .container form {
-    padding: 0 20px;
+    padding: 30px 22px;
   }
-  .toggle-panel {
-    padding: 0 20px;
+  .form-container.sign-up form {
+    padding: 30px 22px;
+  }
+  .mobile-auth-switch {
+    display: flex;
   }
 }
 

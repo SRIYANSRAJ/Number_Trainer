@@ -832,12 +832,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('container');
   const registerBtn = document.getElementById('register');
   const loginBtn = document.getElementById('login');
+  const mobileRegisterLink = document.getElementById('mobileRegisterLink');
+  const mobileLoginLink = document.getElementById('mobileLoginLink');
 
   if (registerBtn && container) {
     registerBtn.addEventListener('click', () => container.classList.add('active'));
   }
   if (loginBtn && container) {
     loginBtn.addEventListener('click', () => container.classList.remove('active'));
+  }
+  if (mobileRegisterLink && container) {
+    mobileRegisterLink.addEventListener('click', () => container.classList.add('active'));
+  }
+  if (mobileLoginLink && container) {
+    mobileLoginLink.addEventListener('click', () => container.classList.remove('active'));
   }
 
   // ── SIGN IN (email/password) ──────────────────────────────────────────
